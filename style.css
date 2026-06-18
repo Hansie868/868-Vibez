@@ -769,3 +769,15 @@ body.ms-focus-mode .ambient { display: none; }
   .layout-3 { grid-template-columns:1fr; }
   .deck-grid { grid-template-columns:1fr 160px 1fr; }
 }
+
+/* Hide phase module panels from viewport */
+.phase8-card, .phase9-card, .phase9-root,
+#phase8Root, #phase9Root, #phase10Panel,
+#phase16Panel, #phase17Panel, #phase18Panel,
+#phase22Diagnostics, .phase-extension-panel,
+.release-card, #phase25Panel, .phase25-card,
+.phase6-card, .phase7-card,
+[id^="phase"][id$="Root"],
+[id^="phase"][id$="Panel"] {
+  display: none !important;
+}
