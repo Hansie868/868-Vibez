@@ -1,0 +1,74 @@
+/* MediaSuite V3 — Phase 23 Quantized FX & Remix Engine */
+.phase23-panel {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(0,229,255,.18);
+  background: rgba(255,255,255,.035);
+  border-radius: 16px;
+}
+.phase23-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  color: var(--cyan, #00e5ff);
+  margin-bottom: 10px;
+}
+.phase23-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: rgba(238,238,255,.65);
+}
+.phase23-btn, .phase23-select, .phase23-pad-actions button {
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.05);
+  color: rgba(238,238,255,.9);
+  border-radius: 10px;
+  padding: 6px 9px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.phase23-btn.active, .phase23-pad.active {
+  border-color: rgba(0,229,255,.5);
+  box-shadow: 0 0 14px rgba(0,229,255,.25);
+  color: #00e5ff;
+}
+.phase23-status {
+  font-family: var(--mono, monospace);
+  font-size: 10px;
+  color: rgba(238,238,255,.45);
+  margin: 6px 0;
+}
+.phase23-row input[type="range"] { width: 90px; }
+.phase23-pad-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.p23-pad {
+  min-height: 76px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: linear-gradient(135deg, rgba(0,229,255,.05), rgba(240,0,122,.05));
+  padding: 8px;
+}
+.p23-pad.loaded { border-color: rgba(240,0,122,.28); }
+.p23-pad-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(238,238,255,.9);
+  margin-bottom: 8px;
+}
+.p23-pad-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+.p23-pad-actions button { padding: 5px 2px; }
+@media (max-width: 720px) {
+  .phase23-pad-grid { grid-template-columns: 1fr; }
+}

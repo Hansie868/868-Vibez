@@ -1,0 +1,11 @@
+MediaSuite V3 Phase 20 installed.
+
+This is the release polish layer:
+- diagnostics
+- release audit
+- backup snapshot
+- safe mode
+- compact mode
+- high contrast mode
+- release checklist
+- user test plan

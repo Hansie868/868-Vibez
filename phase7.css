@@ -1,0 +1,23 @@
+/* ============================================================
+   MediaSuite V3 — Phase 7 Pro Audio Timing & Mixer Matrix
+   ============================================================ */
+.phase7-card{
+  border:1px solid rgba(0,229,255,.18);
+  background:rgba(255,255,255,.045);
+  border-radius:18px;
+  padding:14px;
+  margin:12px 0;
+  box-shadow:0 18px 50px rgba(0,0,0,.25);
+}
+.phase7-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.phase7-title{font-size:14px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#f1efff}
+.phase7-badge{font-size:11px;color:#061017;background:#00e5ff;border-radius:999px;padding:3px 8px;font-weight:900;white-space:nowrap}
+.phase7-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.phase7-panel{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);border-radius:16px;padding:12px;min-height:112px}
+.phase7-panel h3{font-size:13px;margin:0 0 8px;color:#f1efff}.phase7-panel small,.phase7-muted{color:rgba(241,239,255,.62);font-size:12px}
+.phase7-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.phase7-btn{border:1px solid rgba(0,229,255,.24);background:rgba(0,229,255,.09);color:#f1efff;border-radius:12px;padding:8px 11px;font-weight:800;font-size:12px}.phase7-btn:hover{background:rgba(0,229,255,.16)}.phase7-btn.warn{border-color:rgba(255,213,74,.35);background:rgba(255,213,74,.08)}.phase7-btn.hot{border-color:rgba(240,0,122,.35);background:rgba(240,0,122,.10)}
+.phase7-kv{display:grid;grid-template-columns:1fr auto;gap:8px;border-bottom:1px solid rgba(255,255,255,.07);padding:6px 0;font-size:12px}.phase7-kv span:first-child{color:rgba(241,239,255,.62)}
+.phase7-toggles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.phase7-toggle{display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035);border-radius:12px;padding:8px;font-size:12px;color:#f1efff}.phase7-toggle input{accent-color:#00e5ff}
+.phase7-range{width:100%;margin:6px 0 2px}.phase7-reawaken{position:relative;border:1px solid rgba(0,229,255,.3);background:linear-gradient(135deg,rgba(0,229,255,.08),rgba(240,0,122,.07));box-shadow:0 18px 60px rgba(0,229,255,.09)}
+.phase7-status{white-space:pre-wrap;font-size:12px;color:rgba(241,239,255,.72);line-height:1.45;margin-top:8px}.phase7-ok{color:#00e676}.phase7-warn{color:#ffd54a}.phase7-danger{color:#ff4d6d}
+@media(max-width:980px){.phase7-grid{grid-template-columns:1fr 1fr}}@media(max-width:620px){.phase7-grid{grid-template-columns:1fr}.phase7-head{align-items:flex-start;flex-direction:column}.phase7-toggles{grid-template-columns:1fr}}

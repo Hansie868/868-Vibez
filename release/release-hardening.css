@@ -1,0 +1,107 @@
+/* ============================================================
+   MediaSuite Phase 20 — Release Polish CSS
+   Stability UI, diagnostics, onboarding, accessibility overlays
+   ============================================================ */
+
+.ms20-toast-stack {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(420px, calc(100vw - 28px));
+  pointer-events: none;
+}
+
+.ms20-toast {
+  pointer-events: auto;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  background: rgba(8,7,20,0.86);
+  backdrop-filter: blur(18px);
+  color: #eeeeff;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.ms20-toast strong { display: block; margin-bottom: 2px; color: #00e5ff; }
+.ms20-toast.warn strong { color: #ffd600; }
+.ms20-toast.error strong { color: #ff1744; }
+.ms20-toast.ok strong { color: #00e676; }
+
+.ms20-panel {
+  position: fixed;
+  left: 14px;
+  bottom: 14px;
+  width: min(440px, calc(100vw - 28px));
+  max-height: min(620px, calc(100dvh - 28px));
+  z-index: 9998;
+  overflow: auto;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  background: rgba(8,7,20,0.9);
+  backdrop-filter: blur(22px);
+  color: #eeeeff;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+  padding: 14px;
+  display: none;
+}
+
+.ms20-panel.open { display: block; }
+.ms20-panel h3 { font-size: 14px; margin: 0 0 8px; color: #00e5ff; }
+.ms20-panel p, .ms20-panel li { font-size: 12px; color: rgba(238,238,255,0.68); line-height: 1.45; }
+.ms20-panel ul { margin-left: 18px; }
+
+.ms20-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.ms20-btn {
+  border: 1px solid rgba(0,229,255,0.22);
+  background: rgba(0,229,255,0.08);
+  color: #eeeeff;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ms20-btn:hover { background: rgba(0,229,255,0.15); }
+.ms20-btn.danger { border-color: rgba(255,23,68,0.3); background: rgba(255,23,68,0.08); }
+.ms20-btn.ok { border-color: rgba(0,230,118,0.3); background: rgba(0,230,118,0.08); }
+
+.ms20-fab {
+  position: fixed;
+  left: 14px;
+  bottom: 14px;
+  z-index: 9997;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,229,255,0.28);
+  background: rgba(0,229,255,0.12);
+  color: #00e5ff;
+  font-weight: 900;
+  box-shadow: 0 0 24px rgba(0,229,255,0.18);
+}
+
+.ms20-density-compact .file-item,
+.ms20-density-compact .track-row,
+.ms20-density-compact .stream-item { padding-top: 5px !important; padding-bottom: 5px !important; }
+
+.ms20-high-contrast {
+  --text-2: rgba(255,255,255,0.78) !important;
+  --text-3: rgba(255,255,255,0.55) !important;
+  --border: rgba(255,255,255,0.18) !important;
+}
+
+.ms20-safe-mode * {
+  transition: none !important;
+  animation: none !important;
+}
+
+@media (max-width: 720px) {
+  .ms20-panel { left: 8px; bottom: 8px; width: calc(100vw - 16px); }
+  .ms20-fab { left: 10px; bottom: 10px; }
+}
