@@ -304,3 +304,41 @@
 
   console.info('[Spatial] Layout controller ready.');
 })();
+
+/* ── Nuclear phase panel cleanup ── */
+function hidePhaseJunk() {
+  const killSelectors = [
+    '[id^="phase"]', '[class*="phase8"]', '[class*="phase9"]',
+    '[class*="phase10"]', '[class*="phase25"]', '[class*="phase28"]',
+    '[class*="phase6"]', '[class*="phase7"]', '.release-card',
+    '.phase-extension-panel', '.phase-card', '[class*="phase-"]'
+  ];
+  killSelectors.forEach(sel => {
+    document.querySelectorAll(sel).forEach(el => {
+      if (!['app','workspace','deckDrawer','zone-vault',
+            'zone-collection','zone-archive','vaultFrame',
+            'vaultUrl','vaultLoad','vaultStatus','extractedPanel',
+            'savePanel','vaultVideoWrap','sandboxFrame',
+            'trackList','metadataEditor','crateList',
+            'quickLoad','waveA','waveB','audioA','audioB',
+            'mainAudio','meterL','meterR','cuesA','cuesB',
+            'recommendations','sessionLog','analyticsOverview',
+            'healthReport','searchResults','crateTracks',
+            'deckDrawer','drawerHandle','drawerContent'
+           ].includes(el.id) && !el.closest('#workspace') && !el.closest('.deck-drawer')) {
+        el.style.display = 'none';
+        el.style.visibility = 'hidden';
+        el.style.position = 'absolute';
+        el.style.pointerEvents = 'none';
+        el.style.zIndex = '-9999';
+      }
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  hidePhaseJunk();
+  setTimeout(hidePhaseJunk, 500);
+  setTimeout(hidePhaseJunk, 1500);
+  setTimeout(hidePhaseJunk, 3000);
+});
