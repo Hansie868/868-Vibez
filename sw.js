@@ -1,4 +1,4 @@
-const CACHE = '868vibez-v12';
+const CACHE = '868vibez-v14';
 const ASSETS = [
   './home.html', './', './index.html',
   './app.css', './ui-upgrade.css',
@@ -11,7 +11,8 @@ const ASSETS = [
   './phase16.js', './phase17.js',
   './analysis-worker.js',
   './manifest.json',
-  './icons/icon-192.svg', './icons/icon-512.svg'
+  './icons/icon-192.svg', './icons/icon-512.svg',
+  './icons/splash-cover.jpg'
 ];
 self.addEventListener('install', e => e.waitUntil(
   caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()).catch(() => self.skipWaiting())

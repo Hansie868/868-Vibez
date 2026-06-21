@@ -247,17 +247,19 @@
 
 /* Controls */
 .np-controls {
-  padding: 16px 20px 12px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: 16px 20px 12px;
   background: var(--bg);
-  gap: 0 !important;
-  justify-content: space-between;
   width: 100%;
   flex-shrink: 0;
 }
 
 .np-ctrl {
-  font-size: 0 !important;
-  width: 52px; height: 52px;
+  font-size: 20px;
+  width: 50px; height: 50px;
   border-radius: 50%;
   background: var(--bg3);
   border: 1px solid var(--border);
@@ -267,22 +269,16 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.np-ctrl::before {
-  display: block;
-  font-size: 20px;
-  font-style: normal;
-}
-
-#npPrevBtn::before { content: '⏮'; font-size: 20px; }
-#npNextBtn::before { content: '⏭'; font-size: 20px; }
-
-/* Shuffle and repeat */
-.np-ctrl.shuffle::before { content: '⇄'; font-size: 16px; }
-.np-ctrl.repeat::before  { content: '↺'; font-size: 16px; }
+.np-ctrl.shuffle, .np-ctrl.repeat { font-size: 17px; }
+.np-ctrl.shuffle::after { content: '⇄'; }
+.np-ctrl.repeat::after  { content: '↺'; }
+#npPrevBtn::after { content: '⏮'; }
+#npNextBtn::after { content: '⏭'; }
+.np-ctrl.active { color: var(--cyan); border-color: rgba(0,229,255,.4); background: rgba(0,229,255,.08); }
 
 .np-play-btn {
-  width: 72px !important;
-  height: 72px !important;
+  width: 70px !important;
+  height: 70px !important;
   font-size: 26px !important;
   box-shadow: 0 0 32px rgba(0,229,255,.45), 0 4px 16px rgba(0,0,0,.4) !important;
 }
@@ -462,11 +458,8 @@
   font-weight: 900 !important;
 }
 
-/* Waveform canvas — taller */
-.dd-wave {
-  height: 56px !important;
-  border-radius: 8px !important;
-  border: 1px solid rgba(255,255,255,.06) !important;
+/* Waveform strip — shared, full-width */
+.dj-wave-canvas {
   background: #080808 !important;
 }
 

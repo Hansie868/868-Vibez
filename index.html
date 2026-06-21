@@ -17,12 +17,7 @@
 <div id="splash">
   <canvas id="splashCanvas"></canvas>
   <div class="splash-content">
-    <div class="splash-868">868</div>
-    <div class="splash-vibez">
-      <span class="sv V">V</span><span class="sv I">I</span>
-      <span class="sv B">B</span><span class="sv E">E</span><span class="sv Z">Z</span>
-    </div>
-    <div class="splash-studio">868 Lab Studios™</div>
+    <img src="icons/splash-cover.jpg" alt="868 Vibez — 868 Lab Studios" class="splash-cover-img"/>
     <div class="splash-tap">Tap anywhere to enter</div>
   </div>
 </div>
@@ -97,6 +92,7 @@
           <div class="np-meta-row">
             <span class="np-tag hl" id="npBpm" style="display:none"></span>
             <span class="np-tag hl" id="npKey" style="display:none"></span>
+            <span class="np-tag" id="npPosition" style="display:none;margin-left:auto"></span>
           </div>
         </div>
 
@@ -195,7 +191,21 @@
           <p>Paste a video URL below or tap a video in the Stream Hub</p>
           <button class="vz-btn sm" onclick="qs('[data-sub=vdownload]',document).click()">Paste URL</button>
         </div>
+
+        <!-- Top bar: filename + overflow -->
+        <div class="vo-topbar" id="voTopbar">
+          <div class="vo-filename" id="voFilename">—</div>
+          <div class="vo-top-actions">
+            <button class="vo-icon-btn" id="voLoopToggle" title="Loop">↺</button>
+            <button class="vo-icon-btn" id="voSpeedBtn" title="Playback speed">1.0x</button>
+            <button class="vo-icon-btn" id="voMenuBtn" title="More">⋮</button>
+          </div>
+        </div>
+
         <div class="video-overlay" id="videoOverlay">
+          <!-- Filmstrip scrubber -->
+          <div class="vo-filmstrip" id="voFilmstrip"></div>
+
           <div class="vo-title" id="voTitle">—</div>
           <input type="range" class="vo-seek" id="voSeek" min="0" max="1000" value="0"/>
           <div class="vo-controls">
@@ -203,6 +213,11 @@
             <button class="vo-btn vo-play" id="voPlayBtn">▶</button>
             <button class="vo-btn" id="voNextBtn">+10s</button>
             <span class="vo-times" id="voTimes">0:00 / 0:00</span>
+          </div>
+          <!-- Bottom toolbar: fit / loop / speed / lock -->
+          <div class="vo-bottombar">
+            <button class="vo-icon-btn sm" id="voFitBtn" title="Fit to screen">⛶</button>
+            <button class="vo-icon-btn sm" id="voLockBtn" title="Lock screen">🔒</button>
           </div>
         </div>
       </div>
@@ -255,10 +270,10 @@
         <button class="subtab" data-sub="playlists">Playlists</button>
       </div>
       <div class="lib-content">
-        <div data-subview="songs" id="libTrackList" style="display:block"></div>
+        <div data-subview="songs" data-show-as="block" id="libTrackList" style="display:block"></div>
         <div id="healthReport" style="padding:0 16px 80px;display:none"></div>
-        <div data-subview="folders" id="folderView" style="display:none"></div>
-        <div data-subview="playlists" id="playlistView" style="display:none"></div>
+        <div data-subview="folders" data-show-as="block" id="folderView" style="display:none"></div>
+        <div data-subview="playlists" data-show-as="block" id="playlistView" style="display:none"></div>
       </div>
     </div>
 
@@ -277,6 +292,13 @@
           <button class="dj-stab active" data-djsub="decks">Twin Decks</button>
           <button class="dj-stab" data-djsub="fx">FX Pad</button>
           <button class="dj-stab" data-djsub="eq">Graphic EQ</button>
+        </div>
+
+        <!-- Shared full-width waveform strip (matches reference: one continuous
+             strip showing both decks, not two small separate waveforms) -->
+        <div class="dj-wave-strip" id="djWaveStrip">
+          <canvas id="waveA" class="dj-wave-canvas wave-a"></canvas>
+          <canvas id="waveB" class="dj-wave-canvas wave-b"></canvas>
         </div>
 
         <!-- Twin Decks -->
@@ -299,8 +321,7 @@
               <!-- Hot cue pad grid overlay -->
               <div class="dd-pad-grid" id="djAPadGrid"></div>
             </div>
-            <canvas id="waveA" class="dd-wave"></canvas>
-            
+
             <div class="dd-transport" id="djATransport">
               <button id="djALoad" class="dd-btn">LOAD</button>
               <button id="djACue"  class="dd-btn">CUE</button>
@@ -351,8 +372,7 @@
               </div>
               <div class="dd-pad-grid" id="djBPadGrid"></div>
             </div>
-            <canvas id="waveB" class="dd-wave"></canvas>
-            
+
             <div class="dd-transport" id="djBTransport">
               <button id="djBLoad" class="dd-btn">LOAD</button>
               <button id="djBCue"  class="dd-btn">CUE</button>

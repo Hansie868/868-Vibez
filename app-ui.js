@@ -51,9 +51,22 @@ function bindSubtabs(pageEl) {
       const bar = btn.closest('.subtab-bar');
       qsa('.subtab', bar).forEach(b => b.classList.toggle('active', b === btn));
       const target = btn.dataset.sub;
-      qsa('[data-subview]', pageEl).forEach(v =>
-        v.classList.toggle('active', v.dataset.subview === target)
-      );
+      // CRITICAL FIX (found via live device testing): every [data-subview]
+      // element has a hardcoded inline `style="display:none"` (or similar)
+      // baked directly into index.html. Inline styles always win over any
+      // CSS class rule, and there was no [data-subview].active CSS rule
+      // anywhere in the stylesheet to begin with — so toggling the 'active'
+      // class here did precisely nothing visually. The Tracks sub-tab on
+      // the Player page (and Stream's Browser, Video's Download) were all
+      // permanently display:none, meaning every track row tap landed on a
+      // zero-size, invisible container — which is exactly why taps appeared
+      // to do "absolutely nothing." Setting el.style.display directly
+      // overrides the inline default and actually shows/hides the panel.
+      qsa('[data-subview]', pageEl).forEach(v => {
+        const isTarget = v.dataset.subview === target;
+        v.classList.toggle('active', isTarget);
+        v.style.display = isTarget ? (v.dataset.showAs || 'flex') : 'none';
+      });
     });
   });
 }
@@ -304,6 +317,16 @@ function updatePlayerUI() {
   if ($('npKey') && t?.key) { $('npKey').textContent=t.key; $('npKey').style.display=''; }
   else if ($('npKey')) $('npKey').style.display='none';
   if ($('npPlayBtn')) $('npPlayBtn').textContent = a?.paused===false ? '⏸' : '▶';
+  // Position counter (X1 Player style: "2/33")
+  if ($('npPosition')) {
+    if (t && MS.library?.length) {
+      const idx = MS.library.findIndex(x => x.id === t.id);
+      $('npPosition').textContent = idx >= 0 ? `${idx + 1}/${MS.library.length}` : '';
+      $('npPosition').style.display = idx >= 0 ? '' : 'none';
+    } else {
+      $('npPosition').style.display = 'none';
+    }
+  }
 }
 
 // Transport
@@ -395,21 +418,77 @@ function refreshPlayerView() {
 ════════════════════════════════════════════════ */
 const videoEl = $('mainVideoEl');
 let hideOverlayTimer;
+let voLooping = false;
+let voSpeedIndex = 0;
+const VO_SPEEDS = [1.0, 1.25, 1.5, 2.0, 0.5, 0.75];
+let voFitContain = true;
+let voLocked = false;
 
 function loadVideoUrl(url, title='') {
   if (!videoEl) return;
   videoEl.src=url; videoEl.load();
   const ph=$('videoPh');
   if(ph) ph.style.display='none';
-  $('voTitle').textContent = title || decodeURIComponent(url.split('/').pop().replace(/\.[^.]+$/,''));
-  MS.selectedVideoTitle = $('voTitle').textContent;
+  const displayName = title || decodeURIComponent(url.split('/').pop().replace(/\.[^.]+$/,''));
+  $('voTitle').textContent = displayName;
+  if ($('voFilename')) $('voFilename').textContent = displayName;
+  MS.selectedVideoTitle = displayName;
   // Connect to audio graph
   MS.ensureAudioCtx();
   if(!videoEl._msNode && MS.gainM) MS.connectAudioEl(videoEl, MS.gainM);
   showVideoOverlay();
+  // Generate filmstrip once metadata is ready
+  videoEl.addEventListener('loadedmetadata', generateFilmstrip, { once: true });
 }
 MS.loadVideoUrl = loadVideoUrl;
 window.loadVideoUrl = loadVideoUrl;
+
+/* Filmstrip thumbnail scrubber — captures real frames from the video
+   at evenly spaced timestamps using an offscreen canvas, matching the
+   Samsung Video Player reference's bottom filmstrip strip. */
+async function generateFilmstrip() {
+  const strip = $('voFilmstrip');
+  if (!strip || !videoEl?.duration || !isFinite(videoEl.duration)) return;
+  strip.innerHTML = '';
+  strip.classList.remove('empty');
+
+  const FRAME_COUNT = 8;
+  const duration = videoEl.duration;
+  const originalTime = videoEl.currentTime;
+  const canvas = document.createElement('canvas');
+  canvas.width = 80; canvas.height = 60;
+  const ctx = canvas.getContext('2d');
+
+  const frames = [];
+  for (let i = 0; i < FRAME_COUNT; i++) frames.push((duration / FRAME_COUNT) * i);
+
+  for (let i = 0; i < frames.length; i++) {
+    const el = document.createElement('div');
+    el.className = 'vo-filmstrip-frame';
+    strip.appendChild(el);
+  }
+
+  // Capture frames sequentially (seeking is async, must await each one)
+  for (let i = 0; i < frames.length; i++) {
+    try {
+      await new Promise((resolve) => {
+        const onSeeked = () => {
+          videoEl.removeEventListener('seeked', onSeeked);
+          try {
+            ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+            const frameEl = strip.children[i];
+            if (frameEl) frameEl.style.backgroundImage = `url(${dataUrl})`;
+          } catch {} // cross-origin video frames can't be read — fail silently, frame stays blank
+          resolve();
+        };
+        videoEl.addEventListener('seeked', onSeeked);
+        videoEl.currentTime = frames[i];
+      });
+    } catch { break; }
+  }
+  videoEl.currentTime = originalTime;
+}
 
 $('vdlBtn')?.addEventListener('click', () => {
   const url = $('vdlUrlIn')?.value.trim();
@@ -432,11 +511,17 @@ $('vdlSaveBtn')?.addEventListener('click', async () => {
 });
 
 function showVideoOverlay() {
+  if (voLocked) return; // locked screen ignores taps except the lock button itself
   const ov=$('videoOverlay');
+  const tb=$('voTopbar');
   if(ov) ov.classList.remove('hidden');
+  if(tb) tb.style.opacity='1';
   clearTimeout(hideOverlayTimer);
   hideOverlayTimer=setTimeout(()=>{
-    if(videoEl&&!videoEl.paused) $('videoOverlay')?.classList.add('hidden');
+    if(videoEl&&!videoEl.paused) {
+      $('videoOverlay')?.classList.add('hidden');
+      if(tb) tb.style.opacity='0';
+    }
   },2500);
 }
 
@@ -455,6 +540,67 @@ $('voNextBtn')?.addEventListener('click',()=>{ if(videoEl) videoEl.currentTime=M
 
 $('voSeek')?.addEventListener('change',e=>{
   if(videoEl?.duration) videoEl.currentTime=(+e.target.value/1000)*videoEl.duration;
+});
+
+/* Loop toggle */
+$('voLoopToggle')?.addEventListener('click', e => {
+  e.stopPropagation();
+  voLooping = !voLooping;
+  if (videoEl) videoEl.loop = voLooping;
+  $('voLoopToggle')?.classList.toggle('active', voLooping);
+  MS.toast(voLooping ? '↺ Loop ON' : '↺ Loop OFF', 'info', 1200);
+});
+
+/* Playback speed cycle */
+$('voSpeedBtn')?.addEventListener('click', e => {
+  e.stopPropagation();
+  voSpeedIndex = (voSpeedIndex + 1) % VO_SPEEDS.length;
+  const speed = VO_SPEEDS[voSpeedIndex];
+  if (videoEl) videoEl.playbackRate = speed;
+  if ($('voSpeedBtn')) $('voSpeedBtn').textContent = `${speed}x`;
+  MS.toast(`Speed: ${speed}x`, 'info', 1000);
+});
+
+/* Fit to screen toggle (contain vs cover) */
+$('voFitBtn')?.addEventListener('click', e => {
+  e.stopPropagation();
+  voFitContain = !voFitContain;
+  if (videoEl) videoEl.style.objectFit = voFitContain ? 'contain' : 'cover';
+  MS.toast(voFitContain ? 'Fit: Contain' : 'Fit: Cover', 'info', 1000);
+});
+
+/* Screen lock — hides overlay controls and ignores taps until unlocked */
+$('voLockBtn')?.addEventListener('click', e => {
+  e.stopPropagation();
+  voLocked = !voLocked;
+  const stage = $('videoStage');
+  if (voLocked) {
+    $('videoOverlay')?.classList.add('hidden');
+    if ($('voTopbar')) $('voTopbar').style.opacity = '0';
+    stage?.classList.add('vo-locked');
+    MS.toast('🔒 Screen locked — tap-hold to unlock', 'info', 2000);
+  } else {
+    stage?.classList.remove('vo-locked');
+    showVideoOverlay();
+  }
+});
+// Long-press anywhere unlocks
+let lockPressTimer;
+$('videoStage')?.addEventListener('touchstart', () => {
+  if (!voLocked) return;
+  lockPressTimer = setTimeout(() => {
+    voLocked = false;
+    $('videoStage')?.classList.remove('vo-locked');
+    showVideoOverlay();
+    MS.toast('Unlocked', 'ok', 1200);
+  }, 1200);
+}, { passive: true });
+$('videoStage')?.addEventListener('touchend', () => clearTimeout(lockPressTimer));
+
+/* Overflow menu — minimal: just settings access for now */
+$('voMenuBtn')?.addEventListener('click', e => {
+  e.stopPropagation();
+  showPage('library'); // placeholder route until a dedicated settings sheet exists
 });
 
 videoEl?.addEventListener('timeupdate',()=>{

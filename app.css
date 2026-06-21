@@ -60,6 +60,14 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
 /* ── Pages ── */
 .pages {
   flex:1; overflow:hidden; position:relative;
+  /* AUDIT FIX: without this, real devices (especially Android Chrome)
+     can intercept horizontal swipe gestures for native edge-navigation
+     before JS touch handlers ever see a clean touchend — this is why
+     SwipeNav worked in simulated tests but did nothing on a real phone.
+     pan-y explicitly tells the browser: handle vertical scroll natively,
+     but don't claim horizontal gestures — let our touchstart/touchend
+     listeners in phase4.js's SwipeNav receive the full swipe. */
+  touch-action: pan-y;
 }
 .page {
   position:absolute; inset:0;
@@ -419,6 +427,51 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
 .vo-btn { background:rgba(255,255,255,.15); border:none; color:#fff; border-radius:50%; width:42px; height:42px; display:grid; place-items:center; font-size:18px; cursor:pointer; }
 .vo-play { width:54px; height:54px; font-size:22px; background:rgba(0,229,255,.25); }
 .vo-times { margin-left:auto; font-size:11px; font-family:var(--mono); color:rgba(255,255,255,.7); }
+
+/* Top bar — filename + icon cluster (Samsung Video Player reference) */
+.vo-topbar {
+  position:absolute; top:0; left:0; right:0;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px; padding:14px 16px;
+  background:linear-gradient(rgba(0,0,0,.7), transparent);
+  z-index:5; transition:opacity .3s;
+}
+.video-overlay.hidden ~ .vo-topbar,
+#videoStage:has(.video-overlay.hidden) .vo-topbar { opacity:0; pointer-events:none; }
+.vo-filename {
+  font-size:13px; font-weight:700; color:#fff;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  max-width:55%;
+}
+.vo-top-actions { display:flex; gap:8px; align-items:center; flex-shrink:0; }
+.vo-icon-btn {
+  background:rgba(255,255,255,.12); border:none; color:#fff;
+  border-radius:18px; height:30px; min-width:30px; padding:0 10px;
+  display:grid; place-items:center; font-size:13px; font-weight:700;
+  cursor:pointer; -webkit-tap-highlight-color:transparent;
+}
+.vo-icon-btn.active { background:var(--cyan); color:#050505; }
+.vo-icon-btn.sm { height:34px; min-width:34px; border-radius:50%; font-size:16px; }
+
+/* Bottom toolbar — fit / lock (Samsung Video Player reference) */
+.vo-bottombar {
+  display:flex; justify-content:center; gap:24px;
+  margin-top:10px;
+}
+
+/* Filmstrip scrubber thumbnails */
+.vo-filmstrip {
+  display:flex; gap:3px; height:44px;
+  margin-bottom:10px; border-radius:8px; overflow:hidden;
+  background:rgba(255,255,255,.06);
+}
+.vo-filmstrip-frame {
+  flex:1; background-size:cover; background-position:center;
+  background-color:rgba(255,255,255,.08);
+  min-width:0;
+}
+.vo-filmstrip.empty { display:none; }
+
 .video-placeholder {
   position:absolute; inset:0;
   display:flex; flex-direction:column;
@@ -427,6 +480,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
 }
 .video-placeholder .vp-icon { font-size:52px; }
 .vdl-panel { padding:16px; display:flex; flex-direction:column; gap:12px; overflow-y:auto; max-height:280px; }
+.vo-locked .vo-controls, .vo-locked .vo-seek, .vo-locked .vo-bottombar { pointer-events:none; opacity:.3; }
 
 /* ═══════════════════════════════════════
    PAGE 4 — LIBRARY
@@ -495,7 +549,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
   .dj-page { padding-bottom:0; }
 }
 .dj-content {
-  flex:1; overflow:hidden;
+  flex:1; overflow-y:auto; overflow-x:hidden;
   flex-direction:column;
 }
 .dj-subtabs {
@@ -514,38 +568,59 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
 }
 .dj-stab.active { color:var(--cyan); border-bottom-color:var(--cyan); }
 
-/* Twin Decks */
+/* Shared full-width waveform strip — matches the reference images,
+   one continuous strip spanning the whole screen width showing
+   both decks' waveforms stacked, instead of two small separate
+   per-deck waveforms that previously ate into the cramped layout. */
+.dj-wave-strip {
+  flex-shrink:0; height:46px;
+  background:rgba(0,0,0,.35);
+  border-bottom:1px solid var(--border);
+  position:relative; overflow:hidden;
+}
+.dj-wave-canvas {
+  position:absolute; inset:0; width:100%; height:100%;
+  display:block;
+}
+.dj-wave-canvas.wave-a { opacity:1; }
+.dj-wave-canvas.wave-b { opacity:.55; mix-blend-mode:screen; }
+
+/* Twin Decks — sized with viewport-height-aware units so the
+   platter and controls actually fit in real landscape height
+   on a phone (was previously overflowing/cut off). */
 .twin-decks {
   display:none; flex:1;
-  grid-template-columns:1fr 100px 1fr;
-  gap:0; overflow:hidden;
+  grid-template-columns:1fr 88px 1fr;
+  gap:0; overflow-y:auto; min-height:0;
 }
 .twin-decks.active { display:grid; }
 
 /* Deck */
 .dj-deck {
   display:flex; flex-direction:column;
-  padding:8px; gap:6px;
+  padding:6px 8px; gap:5px;
   border-right:1px solid var(--border);
-  overflow:hidden;
+  overflow:hidden; min-height:0;
 }
 .dj-deck:last-of-type { border-right:none; border-left:1px solid var(--border); }
 .dd-header { display:flex; align-items:center; gap:6px; flex-shrink:0; }
 .dd-badge {
-  width:28px; height:28px; border-radius:7px;
+  width:24px; height:24px; border-radius:6px;
   display:grid; place-items:center;
-  font-size:12px; font-weight:900; flex-shrink:0;
+  font-size:11px; font-weight:900; flex-shrink:0;
 }
 .dd-badge.a { background:rgba(0,229,255,.15); color:var(--cyan); border:1px solid rgba(0,229,255,.3); }
 .dd-badge.b { background:rgba(240,0,122,.15); color:var(--mag);  border:1px solid rgba(240,0,122,.3); }
 .dd-track { flex:1; font-size:10px; color:var(--t2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .dd-bpm   { font-size:10px; font-family:var(--mono); color:var(--yellow); flex-shrink:0; }
 
-/* Platter */
+/* Platter — sized off available height (svh) rather than vw alone,
+   so it scales correctly for real phone landscape dimensions and
+   never gets clipped the way a pure vw-based size could. */
 .dd-platter {
   position:relative; flex-shrink:0;
-  width:min(130px,35vw); height:min(130px,35vw);
-  margin:0 auto; border-radius:50%;
+  width:min(34vw, 38svh); height:min(34vw, 38svh);
+  margin:2px auto; border-radius:50%;
   background:var(--bg3);
   border:2px solid var(--border);
   display:grid; place-items:center;
@@ -556,15 +631,8 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
   position:relative; z-index:2;
   text-align:center; pointer-events:none;
 }
-.dd-bpm-num { font-size:18px; font-weight:800; font-family:var(--mono); }
-.dd-bpm-lbl { font-size:8px; color:var(--t3); letter-spacing:.12em; }
-
-/* Waveform */
-.dd-wave {
-  width:100%; height:36px; display:block;
-  background:rgba(0,0,0,.3);
-  border-radius:6px; cursor:crosshair; flex-shrink:0;
-}
+.dd-bpm-num { font-size:16px; font-weight:800; font-family:var(--mono); }
+.dd-bpm-lbl { font-size:7px; color:var(--t3); letter-spacing:.12em; }
 
 /* Cue row */
 .dd-cues { display:flex; gap:3px; flex-shrink:0; }
@@ -757,25 +825,20 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
 .splash-content {
   position:relative; z-index:2;
   display:flex; flex-direction:column;
-  align-items:center; gap:16px;
+  align-items:center; gap:18px;
   pointer-events:none;
+  padding:24px;
+  width:100%;
 }
-.splash-868 {
-  font-size:clamp(72px,22vw,108px);
-  font-weight:900;
-  background:linear-gradient(180deg,#fff 0%,#d4a017 25%,#c0c0c0 50%,#d4a017 75%,#e8e8e8 100%);
-  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
-  filter:drop-shadow(0 0 24px rgba(212,160,23,.4));
-  line-height:1;
+.splash-cover-img {
+  width:min(86vw, 480px);
+  max-height:72vh;
+  height:auto;
+  object-fit:contain;
+  border-radius:18px;
+  filter:drop-shadow(0 0 36px rgba(232,16,16,.18)) drop-shadow(0 0 36px rgba(0,153,255,.14));
 }
-.splash-vibez { display:flex; gap:clamp(6px,2vw,12px); }
-.sv { font-size:clamp(28px,9vw,44px); font-weight:900; text-shadow:0 0 20px currentColor; }
-.sv.V { color:#e81010; }
-.sv.I, .sv.B { color:#d0d0d0; }
-.sv.E { color:#0099ff; }
-.sv.Z { color:#00e676; }
-.splash-studio { font-size:clamp(11px,3vw,14px); font-weight:700; letter-spacing:.12em; color:rgba(255,255,255,.6); text-transform:uppercase; }
-.splash-tap { font-size:12px; color:rgba(255,255,255,.3); letter-spacing:.1em; animation:blink 2s infinite; }
+.splash-tap { font-size:12px; color:rgba(255,255,255,.35); letter-spacing:.1em; animation:blink 2s infinite; }
 @keyframes blink { 0%,100%{opacity:.3}50%{opacity:.8} }
 
 /* ═══════════════════════════════════════
