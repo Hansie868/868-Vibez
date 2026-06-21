@@ -1,0 +1,617 @@
+/* ============================================================
+   868 VIBEZ — UI Visual Upgrade
+   Replaces cartoonish developer UI with premium mobile design.
+   Targets: Nav icons, Now Playing, track rows, DJ pads,
+            typography scale, glassmorphic depth, artwork.
+   ============================================================ */
+
+/* ══════════════════════════════════════════════════════════════
+   BOTTOM NAV — SVG icons, premium active state
+══════════════════════════════════════════════════════════════ */
+.bottom-nav {
+  background: rgba(6,6,6,.98);
+  border-top: 1px solid rgba(255,255,255,.07);
+  backdrop-filter: blur(32px);
+}
+
+.nav-item {
+  position: relative;
+  gap: 3px;
+}
+
+/* Active indicator pill above icon */
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 32px; height: 3px;
+  background: var(--cyan);
+  border-radius: 0 0 3px 3px;
+  box-shadow: 0 0 10px var(--cyan);
+}
+
+.nav-item .ni-icon {
+  font-size: 0; /* hide emoji */
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* SVG icon replacement via background masks */
+.nav-item[data-page="stream"]  .ni-icon { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z'/%3E%3C/svg%3E") center/20px no-repeat; }
+.nav-item[data-page="player"]  .ni-icon { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolygon points='10,8 16,12 10,16' fill='currentColor' stroke='none'/%3E%3C/svg%3E") center/20px no-repeat; }
+.nav-item[data-page="video"]   .ni-icon { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8'%3E%3Crect x='2' y='4' width='15' height='16' rx='2'/%3E%3Cpath d='M17 8l5-3v14l-5-3'/%3E%3C/svg%3E") center/20px no-repeat; }
+.nav-item[data-page="library"] .ni-icon { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8'%3E%3Cpath d='M4 4v16M8 4v16M12 4l4 16M18 7l2 13'/%3E%3C/svg%3E") center/20px no-repeat; }
+.nav-item[data-page="dj"]      .ni-icon { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 2v3M12 19v3M2 12h3M19 12h3'/%3E%3C/svg%3E") center/20px no-repeat; }
+
+.nav-item .ni-icon {
+  background-color: var(--t3) !important;
+  -webkit-mask-size: 22px !important;
+  mask-size: 22px !important;
+  -webkit-mask-repeat: no-repeat !important;
+  mask-repeat: no-repeat !important;
+  -webkit-mask-position: center !important;
+  mask-position: center !important;
+}
+
+/* Re-do nav icons properly using mask */
+.nav-item[data-page="stream"]  .ni-icon { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.8'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.8'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z'/%3E%3C/svg%3E"); }
+.nav-item[data-page="player"]  .ni-icon { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='white' fill-opacity='.15'/%3E%3Cpolygon points='10,8 16,12 10,16' fill='white'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='white' fill-opacity='.15'/%3E%3Cpolygon points='10,8 16,12 10,16' fill='white'/%3E%3C/svg%3E"); }
+.nav-item[data-page="video"]   .ni-icon { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.8'%3E%3Crect x='2' y='4' width='15' height='16' rx='2'/%3E%3Cpath d='M17 8l5-3v14l-5-3'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.8'%3E%3Crect x='2' y='4' width='15' height='16' rx='2'/%3E%3Cpath d='M17 8l5-3v14l-5-3'/%3E%3C/svg%3E"); }
+.nav-item[data-page="library"] .ni-icon { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M4 4v16M8 4v16M13 4l3 16M19 7l2 13'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M4 4v16M8 4v16M13 4l3 16M19 7l2 13'/%3E%3C/svg%3E"); }
+.nav-item[data-page="dj"]      .ni-icon { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.8'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 2v2M12 20v2M2 12h2M20 12h2'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.8'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 2v2M12 20v2M2 12h2M20 12h2'/%3E%3C/svg%3E"); }
+
+.nav-item.active .ni-icon { background-color: var(--cyan) !important; }
+.nav-item .ni-label { font-size: 10px; letter-spacing: .04em; margin-top: 2px; }
+
+/* ══════════════════════════════════════════════════════════════
+   NOW PLAYING — Premium vinyl/album centrepiece layout
+══════════════════════════════════════════════════════════════ */
+.now-playing-view {
+  padding: 0;
+  overflow-y: auto;
+  background: var(--bg);
+  align-items: stretch;
+}
+
+/* Full-width artwork hero */
+.np-art-wrap {
+  width: 100% !important;
+  height: 0 !important;
+  padding-bottom: 100% !important;
+  border-radius: 0 !important;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--bg2) !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin-bottom: 0 !important;
+}
+
+.np-art-wrap-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);
+}
+
+/* Spinning vinyl effect when playing */
+.np-vinyl {
+  width: 72%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.np-vinyl-disc {
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, #222 0%, #111 30%, #0a0a0a 60%, #1a1a1a 100%);
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,.06),
+    0 8px 40px rgba(0,0,0,.8),
+    inset 0 0 60px rgba(0,0,0,.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: vinyl-spin 3s linear infinite paused;
+}
+
+.np-vinyl-disc.spinning { animation-play-state: running; }
+
+@keyframes vinyl-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Artwork circle in centre of vinyl */
+.np-vinyl-art {
+  width: 52%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--bg3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  position: absolute;
+  z-index: 2;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.08), 0 4px 20px rgba(0,0,0,.6);
+  background-size: cover;
+  background-position: center;
+}
+
+/* Vinyl groove rings */
+.np-vinyl-disc::before {
+  content: '';
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  background: repeating-radial-gradient(
+    circle at center,
+    transparent 0px,
+    transparent 3px,
+    rgba(255,255,255,.03) 3px,
+    rgba(255,255,255,.03) 4px
+  );
+}
+
+/* Tonearm */
+.np-vinyl-arm {
+  position: absolute;
+  top: 6%;
+  right: 8%;
+  width: 3px;
+  height: 38%;
+  background: linear-gradient(to bottom, #d4a017, #888);
+  transform-origin: top center;
+  transform: rotate(28deg);
+  border-radius: 2px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.5);
+  z-index: 3;
+  transition: transform .4s ease;
+}
+
+.np-vinyl-arm::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: -4px;
+  width: 10px;
+  height: 10px;
+  background: #888;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+}
+
+/* Bottom info panel */
+.np-info-panel {
+  padding: 20px 20px 8px;
+  background: var(--bg);
+  flex-shrink: 0;
+}
+
+.np-title {
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  letter-spacing: -.01em;
+  line-height: 1.2;
+  margin-bottom: 4px !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.np-artist {
+  font-size: 15px !important;
+  color: var(--t2) !important;
+  font-weight: 500;
+}
+
+.np-meta-row {
+  margin: 10px 0 0 !important;
+  gap: 6px !important;
+}
+
+/* Seek bar */
+.np-seek-wrap {
+  padding: 0 20px;
+  background: var(--bg);
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.np-seek {
+  width: 100%;
+  height: 3px;
+  accent-color: var(--cyan);
+  margin-bottom: 6px;
+}
+
+.np-times {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--t3);
+  font-family: var(--mono);
+  margin-bottom: 0;
+}
+
+/* Controls */
+.np-controls {
+  padding: 16px 20px 12px !important;
+  background: var(--bg);
+  gap: 0 !important;
+  justify-content: space-between;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.np-ctrl {
+  font-size: 0 !important;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--t2);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.np-ctrl::before {
+  display: block;
+  font-size: 20px;
+  font-style: normal;
+}
+
+#npPrevBtn::before { content: '⏮'; font-size: 20px; }
+#npNextBtn::before { content: '⏭'; font-size: 20px; }
+
+/* Shuffle and repeat */
+.np-ctrl.shuffle::before { content: '⇄'; font-size: 16px; }
+.np-ctrl.repeat::before  { content: '↺'; font-size: 16px; }
+
+.np-play-btn {
+  width: 72px !important;
+  height: 72px !important;
+  font-size: 26px !important;
+  box-shadow: 0 0 32px rgba(0,229,255,.45), 0 4px 16px rgba(0,0,0,.4) !important;
+}
+
+/* Bottom action row */
+.np-actions {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  padding: 4px 20px 16px;
+  background: var(--bg);
+  flex-shrink: 0;
+}
+
+.np-action-btn {
+  background: none; border: none;
+  color: var(--t3); font-size: 20px;
+  cursor: pointer; padding: 8px;
+  -webkit-tap-highlight-color: transparent;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 3px;
+}
+.np-action-btn span { font-size: 9px; letter-spacing: .06em; text-transform: uppercase; }
+.np-action-btn.active { color: var(--cyan); }
+
+/* ══════════════════════════════════════════════════════════════
+   TRACK ROWS — Album art thumbnails, better spacing
+══════════════════════════════════════════════════════════════ */
+.track-row {
+  padding: 10px 16px !important;
+  gap: 14px !important;
+  border-radius: 0 !important;
+  border-bottom: 1px solid rgba(255,255,255,.05) !important;
+  border: none !important;
+  background: transparent !important;
+  grid-template-columns: 52px 1fr auto auto !important;
+}
+
+.track-row:active { background: rgba(255,255,255,.04) !important; }
+.track-row.playing { background: rgba(0,229,255,.04) !important; }
+.track-row.playing .tr-title { color: var(--cyan); }
+
+.tr-art {
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 10px !important;
+  font-size: 0 !important;
+  background: var(--bg3) !important;
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Music note fallback via pseudo-element */
+.tr-art::after {
+  content: '♪';
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  color: var(--t4);
+}
+
+/* Hide pseudo when real art is loaded */
+.tr-art[style*="background-image"]::after { display: none; }
+
+.tr-title { font-size: 14px !important; font-weight: 600 !important; }
+.tr-sub   { font-size: 12px !important; color: rgba(255,255,255,.4) !important; margin-top: 3px !important; }
+
+.track-deck-btns .load-deck-a,
+.track-deck-btns .load-deck-b {
+  width: 28px; height: 28px;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  font-size: 11px !important;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Playing indicator bar on left edge */
+.track-row.playing::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 8px; bottom: 8px;
+  width: 3px;
+  background: var(--cyan);
+  border-radius: 0 2px 2px 0;
+  box-shadow: 0 0 8px var(--cyan);
+}
+.track-row { position: relative; }
+
+/* ══════════════════════════════════════════════════════════════
+   DJ PAGE — Professional hardware look
+══════════════════════════════════════════════════════════════ */
+
+/* Platter upgrade — larger, more detail */
+.dd-platter {
+  width: min(160px, 42vw) !important;
+  height: min(160px, 42vw) !important;
+  border-radius: 50% !important;
+  background: #0a0a0a !important;
+  border: 2px solid rgba(255,255,255,.06) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.04),
+    0 8px 32px rgba(0,0,0,.7),
+    inset 0 0 40px rgba(0,0,0,.5) !important;
+}
+
+/* Deck A platter — cyan glow ring */
+.d-deck--a .dd-platter {
+  box-shadow:
+    0 0 0 2px rgba(0,229,255,.15),
+    0 0 30px rgba(0,229,255,.12),
+    0 8px 32px rgba(0,0,0,.7) !important;
+}
+
+/* Deck B platter — magenta glow ring */
+.d-deck--b .dd-platter {
+  box-shadow:
+    0 0 0 2px rgba(240,0,122,.15),
+    0 0 30px rgba(240,0,122,.12),
+    0 8px 32px rgba(0,0,0,.7) !important;
+}
+
+/* Hot cue PAD GRID — colourful solid blocks */
+.dd-pad-grid {
+  gap: 3px !important;
+  padding: 4px !important;
+  border-radius: 8px !important;
+  background: rgba(0,0,0,.4) !important;
+}
+
+.dd-pad {
+  border-radius: 8px !important;
+  border: none !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: .04em !important;
+  box-shadow: inset 0 -3px 0 rgba(0,0,0,.4) !important;
+  transition: filter .08s, transform .08s !important;
+}
+
+.dd-pad:active {
+  filter: brightness(1.4) !important;
+  transform: scale(.94) translateY(2px) !important;
+  box-shadow: none !important;
+}
+
+/* Transport buttons — larger, more tactile */
+.dd-btn {
+  border-radius: 8px !important;
+  padding: 10px 4px !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: .04em !important;
+  background: #111 !important;
+  border: 1px solid rgba(255,255,255,.1) !important;
+}
+
+.dd-play.a-play {
+  background: rgba(0,229,255,.18) !important;
+  border-color: rgba(0,229,255,.5) !important;
+  box-shadow: 0 0 16px rgba(0,229,255,.3) !important;
+  font-size: 18px !important;
+}
+
+.dd-play.b-play {
+  background: rgba(240,0,122,.18) !important;
+  border-color: rgba(240,0,122,.5) !important;
+  box-shadow: 0 0 16px rgba(240,0,122,.3) !important;
+  font-size: 18px !important;
+}
+
+/* Deck badge */
+.dd-badge {
+  width: 32px !important; height: 32px !important;
+  border-radius: 9px !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+}
+
+/* Waveform canvas — taller */
+.dd-wave {
+  height: 56px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255,255,255,.06) !important;
+  background: #080808 !important;
+}
+
+/* VU meters — more prominent */
+.dm-meter-track {
+  width: 10px !important;
+  height: 70px !important;
+  border-radius: 5px !important;
+}
+
+/* Crossfader — wider thumb */
+.dm-xfader::-webkit-slider-thumb {
+  width: 28px !important;
+  height: 16px !important;
+  border-radius: 4px !important;
+  background: linear-gradient(180deg, #444, #222) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.1) !important;
+  margin-top: -6px !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   GLASSMORPHIC CARDS — deeper depth
+══════════════════════════════════════════════════════════════ */
+.vz-card, .sp-glass, .pod {
+  background: rgba(255,255,255,.03) !important;
+  border: 1px solid rgba(255,255,255,.07) !important;
+  backdrop-filter: blur(24px) !important;
+}
+
+/* Source items in Stream Hub */
+.source-item, .vsb-item, .portal-card {
+  transition: all .15s !important;
+}
+.source-item:active, .vsb-item:active {
+  background: rgba(0,229,255,.06) !important;
+  border-color: rgba(0,229,255,.2) !important;
+}
+.portal-card:active {
+  background: rgba(0,229,255,.08) !important;
+  border-color: rgba(0,229,255,.3) !important;
+  transform: scale(.97) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SUBTABS — rounder, more defined
+══════════════════════════════════════════════════════════════ */
+.subtab-bar {
+  padding: 14px 16px 0 !important;
+  gap: 6px !important;
+  overflow-x: auto;
+}
+.subtab-bar::-webkit-scrollbar { height: 0; }
+
+.subtab {
+  padding: 8px 20px !important;
+  border-radius: 24px !important;
+  font-size: 12px !important;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   GENRE CHIPS — pill style
+══════════════════════════════════════════════════════════════ */
+.genre-chip, .g-chip {
+  border-radius: 24px !important;
+  padding: 7px 16px !important;
+  font-size: 12px !important;
+  border: 1.5px solid var(--border) !important;
+}
+
+.genre-chip.active, .g-chip.active {
+  border-width: 1.5px !important;
+  font-weight: 800 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MINI PLAYER — glass blur, artwork
+══════════════════════════════════════════════════════════════ */
+#miniPlayer {
+  background: rgba(6,6,6,.95) !important;
+  border-top: 1px solid rgba(255,255,255,.08) !important;
+  backdrop-filter: blur(32px) !important;
+}
+
+.mp-art {
+  border-radius: 10px !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,.5) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BUTTONS — more tactile
+══════════════════════════════════════════════════════════════ */
+.vz-btn {
+  transition: all .12s !important;
+}
+.vz-btn:active { transform: scale(.95) !important; }
+.vz-btn.primary {
+  box-shadow: 0 0 20px rgba(0,229,255,.3) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LIBRARY page — bigger folder icons
+══════════════════════════════════════════════════════════════ */
+.folder-item { padding: 16px !important; }
+.folder-icon { font-size: 36px !important; }
+.folder-name { font-size: 15px !important; font-weight: 700 !important; }
+.folder-meta { font-size: 12px !important; }
+
+.playlist-item { padding: 14px 16px !important; }
+.pl-art { width: 56px !important; height: 56px !important; border-radius: 14px !important; font-size: 26px !important; }
+.pl-name  { font-size: 14px !important; font-weight: 700 !important; }
+.pl-count { font-size: 12px !important; }
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION LABELS — more defined
+══════════════════════════════════════════════════════════════ */
+.section-label {
+  font-size: 10px !important;
+  letter-spacing: .14em !important;
+  padding: 16px 16px 8px !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SEARCH INPUTS — cleaner
+══════════════════════════════════════════════════════════════ */
+.vz-input, .lib-search, .console-input, .coll-search {
+  background: rgba(255,255,255,.05) !important;
+  border: 1px solid rgba(255,255,255,.1) !important;
+  border-radius: 14px !important;
+  font-size: 14px !important;
+  padding: 12px 14px !important;
+}
+.vz-input:focus, .lib-search:focus, .console-input:focus, .coll-search:focus {
+  border-color: rgba(0,229,255,.5) !important;
+  background: rgba(255,255,255,.07) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   EMPTY STATES — cleaner
+══════════════════════════════════════════════════════════════ */
+.lib-empty, .ez-empty {
+  gap: 12px !important;
+  padding: 48px 24px !important;
+  color: rgba(255,255,255,.3) !important;
+  font-size: 13px !important;
+}
+.lib-empty-icon, .ez-icon { font-size: 52px !important; }

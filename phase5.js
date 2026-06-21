@@ -1,336 +1,236 @@
 /* ============================================================
-   MediaSuite V3 Phase 5 — Pro Performance Engine
-   - Worker scanner
-   - Equal-power crossfader
-   - Sharp Cut mode
-   - Virtualized list rendering
-   - Harmonic visual enhancement
+   868 VIBEZ — Phase 5: Audio Engine Improvements
+   1. Spectrum Analyser Visualiser — canvas frequency display
+   2. Soft Saturation              — WaveShaperNode warmth
+   3. Audio Diagnostics            — latency, buffer, levels
    ============================================================ */
-(function () {
-  'use strict';
+'use strict';
 
-  const P5 = {
-    worker: null,
-    cancelScan: false,
-    fileHandleMap: new Map(),
-    virtual: new Map(),
-    rowHeight: 76,
-    overscan: 10,
-    sharpCut: false,
-    equalPower: true
+/* ══ 1. SPECTRUM ANALYSER ══ */
+const Visualiser = {
+  _analyser: null,
+  _raf: null,
+  _canvas: null,
+  _ctx: null,
+
+  init() {
+    const audioCtx = MS.ensureAudioCtx();
+    if (!audioCtx || this._analyser) return;
+    this._analyser = audioCtx.createAnalyser();
+    this._analyser.fftSize = 256;
+    this._analyser.smoothingTimeConstant = 0.8;
+    // Tap off limiter output
+    try { MS.limiter.connect(this._analyser); } catch {}
+    MS._analyser = this._analyser;
+  },
+
+  attach(canvasId) {
+    this._canvas = document.getElementById(canvasId);
+    if (!this._canvas) return;
+    this._ctx = this._canvas.getContext('2d');
+    if (!this._analyser) this.init();
+    this.start();
+  },
+
+  start() {
+    if (this._raf) cancelAnimationFrame(this._raf);
+    const draw = () => {
+      this._raf = requestAnimationFrame(draw);
+      if (!this._canvas || !this._analyser) return;
+      const c = this._ctx;
+      const W = this._canvas.width  = this._canvas.offsetWidth  * devicePixelRatio;
+      const H = this._canvas.height = this._canvas.offsetHeight * devicePixelRatio;
+      const data = new Uint8Array(this._analyser.frequencyBinCount);
+      this._analyser.getByteFrequencyData(data);
+
+      c.clearRect(0, 0, W, H);
+      const barW = W / data.length * 2.5;
+      const skip  = Math.floor(data.length / (W / barW));
+
+      for (let i = 0; i < data.length; i += skip) {
+        const val  = data[i] / 255;
+        const barH = val * H;
+        const hue  = 180 + val * 60; // cyan → magenta
+        c.fillStyle = `hsla(${hue},100%,${50+val*30}%,${0.7+val*0.3})`;
+        c.fillRect(i/skip * barW, H - barH, barW - 1, barH);
+      }
+
+      // Peak line
+      const peak = Math.max(...data) / 255;
+      if (peak > 0.01) {
+        c.fillStyle = `rgba(0,229,255,0.4)`;
+        c.fillRect(0, H - peak * H, W, 1);
+      }
+    };
+    draw();
+  },
+
+  stop() {
+    if (this._raf) { cancelAnimationFrame(this._raf); this._raf = null; }
+  }
+};
+MS.visualiser = Visualiser;
+
+/* ══ 2. SOFT SATURATION — WaveShaperNode ══ */
+const Saturation = {
+  _node: null,
+  _wet:  null,
+  _dry:  null,
+  amount: 0, // 0 = off, 1 = full
+
+  init() {
+    const ctx = MS.ensureAudioCtx();
+    if (!ctx || this._node) return;
+    this._node = ctx.createWaveShaper();
+    this._wet  = ctx.createGain();
+    this._dry  = ctx.createGain();
+    this._node.connect(this._wet);
+    this._wet.connect(MS.limiter);
+    this._dry.gain.value = 1;
+    this._wet.gain.value = 0;
+    // Tap gainM → saturation
+    try {
+      MS.gainM.connect(this._node);
+      MS.gainM.connect(this._dry);
+      this._dry.connect(MS.limiter);
+    } catch {}
+    MS._satNode = this._node;
+  },
+
+  _curve(amount) {
+    const n = 256, k = amount * 100;
+    const curve = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const x = (i * 2) / n - 1;
+      curve[i] = k ? ((Math.PI + k) * x) / (Math.PI + k * Math.abs(x)) : x;
+    }
+    return curve;
+  },
+
+  set(amount) {
+    this.amount = Math.max(0, Math.min(1, amount));
+    if (!this._node) this.init();
+    if (!this._node) return;
+    this._node.curve    = this._curve(this.amount);
+    this._wet.gain.value = this.amount * 0.4;
+    this._dry.gain.value = 1 - this.amount * 0.3;
+    localStorage.setItem('vz_saturation', this.amount);
+    MS.emit('saturation:changed', this.amount);
+  },
+
+  load() {
+    const saved = parseFloat(localStorage.getItem('vz_saturation') || '0');
+    if (saved > 0) { this.init(); this.set(saved); }
+  }
+};
+MS.saturation = Saturation;
+
+/* ══ 3. AUDIO DIAGNOSTICS ══ */
+const AudioDiag = {
+  _data: { latency: 0, bufferUnderruns: 0, peakLevel: 0, sampleRate: 0, state: 'idle' },
+
+  measure() {
+    const ctx = MS.audioCtx;
+    if (!ctx) return this._data;
+    this._data.latency    = ((ctx.outputLatency || ctx.baseLatency || 0) * 1000).toFixed(1);
+    this._data.sampleRate = ctx.sampleRate;
+    this._data.state      = ctx.state;
+    if (MS._analyser) {
+      const data = new Uint8Array(MS._analyser.frequencyBinCount);
+      MS._analyser.getByteFrequencyData(data);
+      this._data.peakLevel = (Math.max(...data) / 255 * 100).toFixed(1);
+    }
+    return this._data;
+  },
+
+  report() {
+    const d = this.measure();
+    return `Latency: ${d.latency}ms | Rate: ${d.sampleRate}Hz | Peak: ${d.peakLevel}% | State: ${d.state}`;
+  }
+};
+MS.audioDiag = AudioDiag;
+
+/* ══ UI — inject visualiser canvas + controls ══ */
+document.addEventListener('DOMContentLoaded', () => {
+
+  // Inject spectrum canvas below vinyl on Now Playing
+  const npSeekWrap = document.querySelector('.np-seek-wrap');
+  if (npSeekWrap) {
+    const vizWrap = document.createElement('div');
+    vizWrap.id = 'vizWrap';
+    vizWrap.style.cssText = 'padding:0 20px 8px;background:var(--bg);flex-shrink:0;display:none';
+    vizWrap.innerHTML = `<canvas id="specCanvas" style="width:100%;height:48px;border-radius:10px;background:rgba(0,0,0,.3);display:block"></canvas>`;
+    npSeekWrap.before(vizWrap);
+  }
+
+  // Saturation slider in Audio Presets tab
+  const eqPresetView = document.querySelector('.eq-preset-view');
+  if (eqPresetView) {
+    const satRow = document.createElement('div');
+    satRow.style.cssText = 'margin-bottom:16px';
+    satRow.innerHTML = `
+      <div class="section-label" style="padding:0 0 8px">Saturation / Warmth</div>
+      <div style="display:flex;align-items:center;gap:12px;padding:0 4px">
+        <span style="font-size:11px;color:var(--t3)">Off</span>
+        <input type="range" id="satSlider" min="0" max="1" step="0.05" value="0" style="flex:1;accent-color:var(--orange)">
+        <span style="font-size:11px;color:var(--t3)">Warm</span>
+        <span id="satVal" style="font-size:10px;font-family:monospace;color:var(--orange);width:30px;text-align:right">0%</span>
+      </div>`;
+    const firstLabel = eqPresetView.querySelector('.section-label');
+    if (firstLabel) firstLabel.before(satRow);
+  }
+
+  // Diagnostics in settings area
+  const diagBtn = document.getElementById('rebuildWaves');
+  if (diagBtn) {
+    const db = document.createElement('button');
+    db.className = 'vz-btn btn--xs sm';
+    db.textContent = '📊 Diagnostics';
+    db.onclick = () => {
+      Visualiser.init();
+      const r = AudioDiag.report();
+      MS.toast(r, 'info', 4000);
+    };
+    diagBtn.after(db);
+  }
+
+  // Wire visualiser toggle
+  const vizToggle = document.createElement('button');
+  vizToggle.className = 'np-action-btn';
+  vizToggle.id = 'vizToggleBtn';
+  vizToggle.innerHTML = `<span style="font-size:22px">📊</span><span>Spectrum</span>`;
+  vizToggle.onclick = () => {
+    const wrap = document.getElementById('vizWrap');
+    if (!wrap) return;
+    const show = wrap.style.display === 'none';
+    wrap.style.display = show ? 'block' : 'none';
+    if (show) {
+      Visualiser.init();
+      Visualiser.attach('specCanvas');
+    } else {
+      Visualiser.stop();
+    }
   };
+  const npActions = document.querySelector('.np-actions');
+  if (npActions) npActions.appendChild(vizToggle);
 
-  window.MediaSuitePhase5 = P5;
-
-  const $ = (id) => document.getElementById(id);
-
-  document.addEventListener('DOMContentLoaded', () => {
-    injectPhase5UI();
-    bindCrossfaderEngine();
-    patchScannerIfAvailable();
-    patchRenderersIfAvailable();
-    console.log('MediaSuite Phase 5 Pro Performance Engine loaded.');
+  // Wire saturation slider
+  document.getElementById('satSlider')?.addEventListener('input', e => {
+    const v = +e.target.value;
+    Saturation.init();
+    Saturation.set(v);
+    const val = document.getElementById('satVal');
+    if (val) val.textContent = Math.round(v * 100) + '%';
   });
 
-  function injectPhase5UI() {
-    const libraryHead = document.querySelector('#tab-library .panel-head');
-    if (libraryHead && !$('phase5ScanBar')) {
-      const bar = document.createElement('div');
-      bar.id = 'phase5ScanBar';
-      bar.className = 'phase5-bar';
-      bar.innerHTML = `
-        <div class="phase5-progress-line">
-          <strong>Phase 5 Scanner</strong>
-          <span id="phase5ScanText">Idle</span>
-        </div>
-        <div class="phase5-progress-track"><div id="phase5ScanFill" class="phase5-progress-fill"></div></div>
-        <div class="phase5-controls">
-          <button id="phase5CancelScan" class="btn danger" type="button">Cancel Scan</button>
-          <span class="phase5-toggle">Worker scanning: ON</span>
-          <span class="phase5-toggle">Virtual lists: ON</span>
-        </div>`;
-      libraryHead.insertAdjacentElement('afterend', bar);
-      $('phase5CancelScan').onclick = () => cancelWorkerScan();
-    }
+  // Load saved saturation
+  MS.on('audio:ready', () => Saturation.load());
+  MS.on('player:play', () => {
+    Visualiser.init();
+    // Auto-show spectrum if already open
+    const wrap = document.getElementById('vizWrap');
+    if (wrap?.style.display !== 'none') Visualiser.attach('specCanvas');
+  });
 
-    const mixer = document.querySelector('.mixer.pod');
-    if (mixer && !$('sharpCutToggle')) {
-      const box = document.createElement('label');
-      box.className = 'phase5-toggle';
-      box.innerHTML = `<input id="sharpCutToggle" type="checkbox"> Sharp Cut Crossfader`;
-      mixer.appendChild(box);
-      $('sharpCutToggle').addEventListener('change', (e) => {
-        P5.sharpCut = !!e.target.checked;
-        applyCrossfaderGains();
-      });
-    }
-
-    document.querySelectorAll('.panel-head h1').forEach((h) => {
-      if (!h.querySelector('.phase5-badge')) {
-        const badge = document.createElement('span');
-        badge.className = 'phase5-badge';
-        badge.textContent = 'Phase 5';
-        h.appendChild(badge);
-      }
-    });
-  }
-
-  function bindCrossfaderEngine() {
-    const xf = $('xfader');
-    if (!xf) return;
-    xf.addEventListener('input', applyCrossfaderGains, { passive: true });
-    const master = $('masterGain');
-    if (master) master.addEventListener('input', applyCrossfaderGains, { passive: true });
-    applyCrossfaderGains();
-  }
-
-  function applyCrossfaderGains() {
-    const xf = $('xfader');
-    const master = $('masterGain');
-    const audioA = $('audioA');
-    const audioB = $('audioB');
-    if (!xf || !audioA || !audioB) return;
-
-    const x = clamp(Number(xf.value || 0.5), 0, 1);
-    const m = clamp(Number(master?.value || 1), 0, 1.5);
-    let gainA, gainB;
-
-    if (P5.sharpCut) {
-      // Rapid switch mode: hard center cut, useful for quick drops/scratches.
-      gainA = x < 0.52 ? 1 : 0;
-      gainB = x > 0.48 ? 1 : 0;
-    } else {
-      // Equal-power constant-loudness curve.
-      // Center does not dip like raw linear 0.5 / 0.5 gain.
-      gainA = Math.cos(x * Math.PI / 2);
-      gainB = Math.sin(x * Math.PI / 2);
-    }
-
-    audioA.volume = clamp(gainA * m, 0, 1);
-    audioB.volume = clamp(gainB * m, 0, 1);
-  }
-
-  function patchScannerIfAvailable() {
-    if (!window.Worker) {
-      setProgress('Web Workers unavailable. Using default scanner.', 0);
-      return;
-    }
-
-    // Wrap the existing openFolder button to prefer worker scanning.
-    const openBtn = $('openFolder');
-    if (!openBtn || openBtn.dataset.phase5Bound) return;
-    openBtn.dataset.phase5Bound = '1';
-
-    openBtn.addEventListener('click', async (e) => {
-      // Run in capture-like behavior by preventing duplicated default only if showDirectoryPicker exists.
-      if (!window.showDirectoryPicker) return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      try {
-        const dir = await window.showDirectoryPicker({ mode: 'read' });
-        await phase5ScanDirectory(dir);
-      } catch (err) {
-        if (String(err?.name || '').includes('Abort')) return;
-        console.warn('Phase 5 worker scan failed. Falling back if original scanner exists.', err);
-        if (typeof window.openFolderOriginal === 'function') window.openFolderOriginal();
-      }
-    }, true);
-  }
-
-  async function phase5ScanDirectory(dirHandle) {
-    setProgress('Preparing worker scan...', 1);
-    P5.fileHandleMap.clear();
-    const items = [];
-    let index = 0;
-
-    for await (const entry of walkDirectory(dirHandle, '')) {
-      if (entry.kind === 'file') {
-        const file = await entry.handle.getFile();
-        items.push({ index, path: entry.path, file });
-        P5.fileHandleMap.set(index, entry.handle);
-        index++;
-      }
-    }
-
-    if (!items.length) {
-      setProgress('No supported files found.', 0);
-      return;
-    }
-
-    const worker = new Worker('./scanner.worker.js');
-    P5.worker = worker;
-    P5.cancelScan = false;
-
-    worker.onmessage = async (event) => {
-      const msg = event.data || {};
-      if (msg.type === 'progress') {
-        setProgress(`Scanning ${msg.indexed || 0} / ${msg.total || items.length}`, percent(msg.indexed || 0, msg.total || items.length));
-      }
-      if (msg.type === 'batch') {
-        await commitWorkerBatch(msg.batch || []);
-        setProgress(`Indexed ${msg.indexed} / ${msg.total}`, percent(msg.indexed, msg.total));
-      }
-      if (msg.type === 'itemError') {
-        console.warn('Worker item error:', msg);
-      }
-      if (msg.type === 'cancelled') {
-        setProgress('Scan cancelled.', 0);
-        worker.terminate();
-        P5.worker = null;
-      }
-      if (msg.type === 'complete') {
-        setProgress(`Scan complete: ${msg.indexed} tracks indexed`, 100);
-        worker.terminate();
-        P5.worker = null;
-        await afterWorkerScan();
-      }
-    };
-
-    worker.onerror = (err) => {
-      console.error('scanner.worker.js error:', err);
-      setProgress('Worker scanner error. Check console.', 0);
-    };
-
-    worker.postMessage({ type: 'scanHandles', handles: items, batchSize: 35 });
-  }
-
-  async function* walkDirectory(dirHandle, prefix) {
-    for await (const [name, handle] of dirHandle.entries()) {
-      const path = prefix ? `${prefix}/${name}` : name;
-      if (handle.kind === 'file') yield { kind: 'file', handle, path };
-      if (handle.kind === 'directory') yield* walkDirectory(handle, path);
-    }
-  }
-
-  async function commitWorkerBatch(batch) {
-    for (const item of batch) {
-      const t = item.track;
-      try {
-        if (typeof put === 'function') await put('tracks', t);
-        if (typeof put === 'function') await put('handles', { id: t.id, handle: P5.fileHandleMap.get(item.handleIndex), path: t.path });
-      } catch (err) {
-        console.warn('IndexedDB batch commit failed:', err, t);
-      }
-    }
-  }
-
-  async function afterWorkerScan() {
-    try {
-      if (typeof all === 'function') {
-        // library is a top-level lexical in the original static app; assign if accessible.
-        // eslint-disable-next-line no-undef
-        library = await all('tracks');
-      }
-      if (typeof applySmartCrates === 'function') await applySmartCrates();
-      if (typeof renderAll === 'function') renderAll();
-      enhanceHarmonicClasses();
-    } catch (err) {
-      console.warn('Post worker refresh failed:', err);
-    }
-  }
-
-  function cancelWorkerScan() {
-    P5.cancelScan = true;
-    if (P5.worker) P5.worker.postMessage({ type: 'cancel' });
-    setProgress('Cancelling scan...', 0);
-  }
-
-  function setProgress(text, value) {
-    const label = $('phase5ScanText');
-    const fill = $('phase5ScanFill');
-    if (label) label.textContent = text;
-    if (fill) fill.style.width = `${clamp(Number(value || 0), 0, 100)}%`;
-  }
-
-  function patchRenderersIfAvailable() {
-    const tryPatch = () => {
-      virtualizeContainer('trackList');
-      virtualizeContainer('crateTracks');
-      virtualizeContainer('quickLoad');
-      enhanceHarmonicClasses();
-    };
-
-    const mo = new MutationObserver(() => requestAnimationFrame(tryPatch));
-    ['trackList', 'crateTracks', 'quickLoad'].forEach((id) => {
-      const el = $(id);
-      if (el) mo.observe(el, { childList: true, subtree: false });
-    });
-    setInterval(tryPatch, 1200);
-  }
-
-  function virtualizeContainer(id) {
-    const el = $(id);
-    if (!el || el.dataset.virtualized === '1') return;
-    const children = Array.from(el.children).filter(x => x.classList && x.classList.contains('track'));
-    if (children.length < 80) return;
-
-    const htmlItems = children.map(x => x.outerHTML);
-    el.dataset.virtualized = '1';
-    el.classList.add('virtual-list');
-    el.innerHTML = `<div class="virtual-spacer"><div class="virtual-window"></div></div>`;
-
-    const spacer = el.querySelector('.virtual-spacer');
-    const win = el.querySelector('.virtual-window');
-    const state = { id, items: htmlItems, spacer, win };
-    P5.virtual.set(id, state);
-
-    const render = () => renderVirtual(el, state);
-    el.addEventListener('scroll', render, { passive: true });
-    render();
-  }
-
-  function renderVirtual(container, state) {
-    const total = state.items.length;
-    const row = P5.rowHeight;
-    const viewH = Math.max(container.clientHeight, 320);
-    const start = Math.max(0, Math.floor(container.scrollTop / row) - P5.overscan);
-    const count = Math.ceil(viewH / row) + P5.overscan * 2;
-    const end = Math.min(total, start + count);
-    state.spacer.style.height = `${total * row}px`;
-    state.win.style.transform = `translateY(${start * row}px)`;
-    state.win.innerHTML = state.items.slice(start, end).join('');
-
-    state.win.querySelectorAll('.track').forEach((el) => {
-      if (typeof selectTrack === 'function') el.onclick = () => selectTrack(el.dataset.id);
-    });
-    enhanceHarmonicClasses(state.win);
-  }
-
-  function enhanceHarmonicClasses(root = document) {
-    let activeKey = '';
-    let activeBpm = null;
-    try {
-      // eslint-disable-next-line no-undef
-      activeKey = state?.deckA?.key || state?.deckB?.key || selectedTrack?.key || '';
-      // eslint-disable-next-line no-undef
-      activeBpm = state?.deckA?.bpm || state?.deckB?.bpm || selectedTrack?.bpm || null;
-    } catch (_) {}
-
-    const compatible = activeKey ? camelotCompatible(activeKey) : [];
-    root.querySelectorAll('.track').forEach((el) => {
-      el.classList.remove('phase5-perfect', 'phase5-compatible', 'phase5-rhythm');
-      const key = (el.querySelector('.pill')?.textContent || '').trim().toUpperCase();
-      const text = el.textContent || '';
-      const bpmMatch = text.match(/(\d{2,3})\s*BPM/i);
-      const bpm = bpmMatch ? Number(bpmMatch[1]) : null;
-
-      if (activeKey && key === activeKey.toUpperCase()) el.classList.add('phase5-perfect');
-      else if (activeKey && compatible.includes(key)) el.classList.add('phase5-compatible');
-      else if (activeBpm && bpm && Math.abs(Number(activeBpm) - bpm) <= 3) el.classList.add('phase5-rhythm');
-    });
-  }
-
-  function camelotCompatible(key) {
-    const m = String(key || '').toUpperCase().match(/^(\d{1,2})(A|B)$/);
-    if (!m) return [];
-    const n = Number(m[1]);
-    const l = m[2];
-    const prev = n === 1 ? 12 : n - 1;
-    const next = n === 12 ? 1 : n + 1;
-    const opp = l === 'A' ? 'B' : 'A';
-    return [`${n}${l}`, `${prev}${l}`, `${next}${l}`, `${n}${opp}`];
-  }
-
-  function percent(a, b) { return b ? Math.round((a / b) * 100) : 0; }
-  function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
-})();
+  console.info('[Phase5] Audio Engine Improvements active');
+});

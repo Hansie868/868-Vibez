@@ -1,664 +1,504 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#05040f" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="MediaSuite" />
-  <title>868 Vibez — DJ Engine</title>
-  <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="phase5.css" />
-  <link rel="stylesheet" href="phase6.css" />
-  <link rel="stylesheet" href="phase7.css" />
-  <link rel="stylesheet" href="phase8.css" />
-  <link rel="stylesheet" href="phase9.css" />
-  <link rel="stylesheet" href="phase10/phase10.css" />
-  <link rel="stylesheet" href="release/release-hardening.css" />
-  <link rel="stylesheet" href="css/phase23-quantized-fx-remix.css" />
-  <link rel="stylesheet" href="spatial.css" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/>
+  <meta name="theme-color" content="#050505"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <title>868 Vibez</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="stylesheet" href="app.css"/>
+  <link rel="stylesheet" href="ui-upgrade.css"/>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════════════
-     MEDIASUITE — THREE-ZONE SPATIAL WORKSPACE
-     Zone 1: Discovery Launchpad (Stream Vault)
-     Zone 2: Data Vault Overlay  (My Collection)
-     Zone 3: Performance Decks  (collapsible drawer)
-     ═══════════════════════════════════════════════════════════ -->
+<!-- ═══ SPLASH ═══ -->
+<div id="splash">
+  <canvas id="splashCanvas"></canvas>
+  <div class="splash-content">
+    <div class="splash-868">868</div>
+    <div class="splash-vibez">
+      <span class="sv V">V</span><span class="sv I">I</span>
+      <span class="sv B">B</span><span class="sv E">E</span><span class="sv Z">Z</span>
+    </div>
+    <div class="splash-studio">868 Lab Studios™</div>
+    <div class="splash-tap">Tap anywhere to enter</div>
+  </div>
+</div>
 
 <div id="app">
-  <div class="ambient glow-a"></div>
-  <div class="ambient glow-b"></div>
+  <div class="pages">
 
-  <!-- ═══════════════════════════════
-       HEADER HUB
-       Always visible. Real-time state.
-       ═══════════════════════════════ -->
-  <header class="hub">
-    <!-- Brand -->
-    <div class="hub-brand">
-      <div class="hub-logo">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <polygon points="12,2 22,7 22,17 12,22 2,17 2,7"
-            stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-          <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
-        </svg>
-      </div>
-      <div class="hub-brand-text">
-        <strong>868 Vibez</strong>
-        <span>868 Lab Studios™</span>
-      </div>
-    </div>
-
-    <!-- Zone triggers -->
-    <div class="hub-zones">
-      <button class="zone-trigger active" data-zone="vault">
-        <span class="zt-icon">⬡</span>
-        <span class="zt-label">Stream Vault</span>
-      </button>
-      <button class="zone-trigger" data-zone="collection">
-        <span class="zt-icon">◫</span>
-        <span class="zt-label">My Collection</span>
-      </button>
-      <button class="zone-trigger" data-zone="archive">
-        <span class="zt-icon">◈</span>
-        <span class="zt-label">Archive</span>
-      </button>
-    </div>
-
-    <!-- Now-playing strip -->
-    <div class="hub-player">
-      <button id="prevBtn" class="hp-btn">⏮</button>
-      <button id="playBtn" class="hp-play">▶</button>
-      <button id="nextBtn" class="hp-btn">⏭</button>
-      <div class="hp-meta">
-        <strong id="npTitle">No track loaded</strong>
-        <span id="npSub">Open My Collection or Stream Vault</span>
-      </div>
-      <div class="hp-progress">
-        <span id="timeNow" class="hp-time">0:00</span>
-        <input id="seek" type="range" min="0" max="1000" value="0" class="hp-seek">
-        <span id="timeDur" class="hp-time">0:00</span>
-      </div>
-      <div class="hp-vol">
-        <span class="hp-vol-icon">🔊</span>
-        <input id="volume" type="range" min="0" max="1" step="0.01" value="0.85">
-      </div>
-    </div>
-
-    <!-- Status metrics -->
-    <div class="hub-metrics">
-      <div class="metric">
-        <div class="metric-dot" id="sysDot"></div>
-        <span class="metric-label">SYSTEM</span>
-        <span class="metric-val" id="sysLabel">ACTIVE</span>
-      </div>
-      <div class="metric-divider"></div>
-      <div class="metric">
-        <span class="metric-label">TRACKS</span>
-        <span class="metric-val" id="trackCount">0</span>
-      </div>
-      <div class="metric-divider"></div>
-      <div class="metric">
-        <span class="metric-label">FOLDER</span>
-        <span class="metric-val" id="folderShort">—</span>
-      </div>
-      <!-- Deck drawer toggle -->
-      <button class="deck-toggle" id="deckToggle" title="Toggle Performance Decks">
-        <span class="deck-toggle-icon">◉</span>
-        <span class="deck-toggle-label">DECKS</span>
-        <span class="deck-toggle-arrow" id="deckArrow">▲</span>
-      </button>
-    </div>
-  </header>
-
-  <!-- ═══════════════════════════════
-       MAIN SPATIAL WORKSPACE
-       Three zones, one page.
-       ═══════════════════════════════ -->
-  <div class="workspace" id="workspace">
-
-    <!-- ─────────────────────────────────────────
-         ZONE 1 — DISCOVERY LAUNCHPAD
-         Stream Vault: URL console, iframe sandbox,
-         portal sidebar, extracted links, video.
-    ───────────────────────────────────────── -->
-    <section class="zone zone-vault active" id="zone-vault">
-
-      <!-- Address console -->
-      <div class="console-pod">
-        <div class="console-bar">
-          <div class="console-url-wrap">
-            <span class="console-glyph">⬡</span>
-            <input id="vaultUrl" class="console-input"
-              placeholder="Paste any MP3, MP4, stream URL or open directory — hit Load or Extract"/>
-            <div class="console-type-badge" id="urlTypeBadge">URL</div>
-          </div>
-          <button id="vaultLoad" class="btn primary">Load</button>
-          <button id="vaultExtract" class="btn">⛏ Extract</button>
-          <button id="vaultCapture" class="btn accent-mag" style="display:none">⬇ Capture</button>
+    <!-- ════ PAGE 1 — STREAM HUB ════ -->
+    <div class="page active" id="page-stream" data-page="stream">
+      <div class="stream-console">
+        <div class="stream-url-bar">
+          <span style="font-size:14px;color:var(--cyan);flex-shrink:0">⬡</span>
+          <input id="streamUrlInput" placeholder="Paste MP3, MP4, stream URL or open directory…"/>
+          <div id="urlBadge" style="font-size:9px;font-weight:800;color:var(--t3);border:1px solid var(--border);border-radius:5px;padding:2px 6px;flex-shrink:0">URL</div>
+          <button id="streamLoadBtn" class="vz-btn primary sm" style="flex-shrink:0">Load</button>
         </div>
-        <div id="vaultStatus" class="console-status"></div>
-      </div>
-
-      <!-- Two-column sandbox grid -->
-      <div class="vault-workspace">
-
-        <!-- Left: portal sidebar -->
-        <div class="vault-sidebar-panel">
-          <div class="vsb-section">
-            <div class="vsb-label">🎵 MP3 Streams</div>
-            <div class="vsb-list">
-              <div class="vsb-item" data-url="https://archive.org/download/thebestofdisco/ABBA%20-%20Dancing%20Queen.mp3" data-type="mp3">
-                <span class="type-pip pip-mp3"></span>
-                <div class="vsb-meta"><b>ABBA — Dancing Queen</b><small>Archive.org</small></div>
-                <div class="vsb-actions">
-                  <button class="vsb-btn vsb-play" title="Stream">▶</button>
-                  <button class="vsb-btn vsb-a" title="→ Deck A">A</button>
-                  <button class="vsb-btn vsb-b" title="→ Deck B">B</button>
-                </div>
-              </div>
-              <div class="vsb-item" data-url="https://archive.org/download/thebestofdisco/Anita%20Ward%20-%20Ring%20My%20Bell.mp3" data-type="mp3">
-                <span class="type-pip pip-mp3"></span>
-                <div class="vsb-meta"><b>Anita Ward — Ring My Bell</b><small>Archive.org</small></div>
-                <div class="vsb-actions">
-                  <button class="vsb-btn vsb-play">▶</button>
-                  <button class="vsb-btn vsb-a">A</button>
-                  <button class="vsb-btn vsb-b">B</button>
-                </div>
-              </div>
-              <div class="vsb-item" data-url="https://archive.org/download/thebestofdisco/Amii%20Stewart%20-%20Knock%20On%20Wood.mp3" data-type="mp3">
-                <span class="type-pip pip-mp3"></span>
-                <div class="vsb-meta"><b>Amii Stewart — Knock On Wood</b><small>Archive.org</small></div>
-                <div class="vsb-actions">
-                  <button class="vsb-btn vsb-play">▶</button>
-                  <button class="vsb-btn vsb-a">A</button>
-                  <button class="vsb-btn vsb-b">B</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="vsb-section">
-            <div class="vsb-label">📻 Live Streams</div>
-            <div class="vsb-list">
-              <div class="vsb-item" data-url="https://icecast.walm.org/stream.mp3" data-type="live">
-                <span class="type-pip pip-live"></span>
-                <div class="vsb-meta"><b>Free Broadcast Radio</b><small>Icecast · Live</small></div>
-                <div class="vsb-actions">
-                  <button class="vsb-btn vsb-play">▶</button>
-                  <button class="vsb-btn vsb-a">A</button>
-                  <button class="vsb-btn vsb-b">B</button>
-                </div>
-              </div>
-              <div class="vsb-item" data-url="http://stream.srg-ssr.ch/m/rsj/mp3_128" data-type="live">
-                <span class="type-pip pip-live"></span>
-                <div class="vsb-meta"><b>Worldwide Chillout</b><small>SRG SSR · Live</small></div>
-                <div class="vsb-actions">
-                  <button class="vsb-btn vsb-play">▶</button>
-                  <button class="vsb-btn vsb-a">A</button>
-                  <button class="vsb-btn vsb-b">B</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="vsb-section">
-            <div class="vsb-label">🎬 MP4 Videos</div>
-            <div class="vsb-list">
-              <div class="vsb-item" data-url="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" data-type="mp4">
-                <span class="type-pip pip-mp4"></span>
-                <div class="vsb-meta"><b>Big Buck Bunny</b><small>1080p · Google</small></div>
-                <div class="vsb-actions">
-                  <button class="vsb-btn vsb-play">▶</button>
-                  <button class="vsb-btn vsb-a">A</button>
-                  <button class="vsb-btn vsb-b">B</button>
-                </div>
-              </div>
-              <div class="vsb-item" data-url="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4" data-type="mp4">
-                <span class="type-pip pip-mp4"></span>
-                <div class="vsb-meta"><b>Elephants Dream</b><small>Cinematic · Google</small></div>
-                <div class="vsb-actions">
-                  <button class="vsb-btn vsb-play">▶</button>
-                  <button class="vsb-btn vsb-a">A</button>
-                  <button class="vsb-btn vsb-b">B</button>
-                </div>
-              </div>
-              <div class="vsb-item" data-url="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" data-type="mp4">
-                <span class="type-pip pip-mp4"></span>
-                <div class="vsb-meta"><b>For Bigger Blazes</b><small>Mobile Test · Google</small></div>
-                <div class="vsb-actions">
-                  <button class="vsb-btn vsb-play">▶</button>
-                  <button class="vsb-btn vsb-a">A</button>
-                  <button class="vsb-btn vsb-b">B</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="vsb-section">
-            <div class="vsb-label">🌐 Browse Portals</div>
-            <div class="vsb-list">
-              <div class="vsb-item" data-url="https://archive.org/details/audio" data-type="portal">
-                <span class="type-pip pip-portal"></span>
-                <div class="vsb-meta"><b>Archive.org Audio</b><small>Embeds cleanly</small></div>
-                <button class="vsb-btn vsb-portal">↗</button>
-              </div>
-              <div class="vsb-item" data-url="https://archive.org/details/musicvideos" data-type="portal">
-                <span class="type-pip pip-portal"></span>
-                <div class="vsb-meta"><b>Archive.org Videos</b><small>Embeds cleanly</small></div>
-                <button class="vsb-btn vsb-portal">↗</button>
-              </div>
-              <div class="vsb-item" data-url="https://archive.org/details/prelinger" data-type="portal">
-                <span class="type-pip pip-portal"></span>
-                <div class="vsb-meta"><b>Prelinger Films</b><small>Historic archive</small></div>
-                <button class="vsb-btn vsb-portal">↗</button>
-              </div>
-              <div class="vsb-item" data-url="https://freemusicarchive.org/" data-type="portal">
-                <span class="type-pip pip-portal"></span>
-                <div class="vsb-meta"><b>Free Music Archive</b><small>Opens in window</small></div>
-                <button class="vsb-btn vsb-portal">↗</button>
-              </div>
-              <div class="vsb-item" data-url="https://www.openmusicarchive.org/" data-type="portal">
-                <span class="type-pip pip-portal"></span>
-                <div class="vsb-meta"><b>Open Music Archive</b><small>Opens in window</small></div>
-                <button class="vsb-btn vsb-portal">↗</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="vsb-section">
-            <button id="addCustomSite" class="btn" style="width:100%;font-size:11px;">＋ Save Custom Site</button>
-            <div id="customSiteList" style="margin-top:6px;"></div>
-          </div>
-        </div>
-
-        <!-- Right: sandbox + results -->
-        <div class="vault-sandbox-panel">
-          <!-- iframe sandbox -->
-          <div class="sandbox-frame" id="sandboxFrame">
-            <div class="sandbox-placeholder" id="vaultPlaceholder">
-              <div class="sp-glyph">🌐</div>
-              <p>Select a portal or paste a URL above.</p>
-              <p class="sp-hint">MP3/MP4 links stream instantly.<br>Open directories auto-extract all media links.</p>
-            </div>
-            <iframe id="vaultFrame"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-              style="display:none;width:100%;height:100%;border:none;border-radius:14px;"
-              title="Stream Portal Sandbox"></iframe>
-          </div>
-
-          <!-- Extracted links -->
-          <div class="results-pod" id="extractedPanel" style="display:none;">
-            <div class="results-head">
-              <h3 id="extractedTitle">Extracted Links</h3>
-              <button class="btn btn--xs" id="closeExtracted">✕</button>
-            </div>
-            <div id="extractedList" class="extracted-list"></div>
-          </div>
-
-          <!-- Video player -->
-          <div class="video-pod" id="vaultVideoWrap" style="display:none;">
-            <video id="vaultVideoEl" controls
-              style="width:100%;border-radius:12px;max-height:260px;background:#000;"></video>
-            <div class="video-actions" id="vaultVideoActions"></div>
-          </div>
-
-          <!-- Capture / save panel -->
-          <div class="save-pod" id="savePanel" style="display:none;">
-            <div class="save-pod-head">
-              <span>💾 Save to My Collection</span>
-              <button class="btn btn--xs" id="cancelSave">✕</button>
-            </div>
-            <div class="save-fields">
-              <input id="saveArtist" placeholder="Artist Name" />
-              <input id="saveAlbum"  placeholder="Album Name" />
-              <input id="saveTitle"  placeholder="Track Title" />
-              <select id="saveGenre">
-                <option value="">— Genre —</option>
-                <option>Soca</option><option>Dancehall</option><option>Hip Hop</option>
-                <option>Afrobeats</option><option>Reggaeton</option><option>Pop</option>
-                <option>House</option><option>R&B</option><option>Slows</option>
-                <option>Indian</option><option>Latin</option><option>Other</option>
-              </select>
-            </div>
-            <button id="saveToFolder" class="btn primary" style="width:100%;margin-top:8px;">
-              📁 Write to Device Folder
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ─────────────────────────────────────────
-         ZONE 2 — DATA VAULT / MY COLLECTION
-         Genre chips → Artist folders → Album tracks
-    ───────────────────────────────────────── -->
-    <section class="zone zone-collection" id="zone-collection">
-
-      <!-- Top bar -->
-      <div class="coll-topbar">
-        <div class="coll-actions">
-          <button id="openFolder" class="btn primary">📁 Open Folder</button>
-          <button id="rescan" class="btn">↺ Rescan</button>
-        </div>
-        <div class="coll-search-wrap">
-          <span class="coll-search-icon">🔍</span>
-          <input id="libraryFilter" class="coll-search"
-            placeholder="Search title, artist, BPM, key, genre…"/>
-        </div>
-        <div class="coll-view-toggle">
-          <button class="btn btn--xs active" id="viewList">≡ List</button>
-          <button class="btn btn--xs" id="viewGroup">⊞ Grouped</button>
-          <select id="sortBy" class="sort-select">
-            <option value="title">Title</option>
-            <option value="artist">Artist</option>
-            <option value="bpm">BPM</option>
-            <option value="key">Key</option>
-            <option value="energy">Energy</option>
-            <option value="lastPlayed">Last Played</option>
-          </select>
+        <div class="subtab-bar">
+          <button class="subtab active" data-sub="explore">Explore</button>
+          <button class="subtab" data-sub="browser">In-App Browser</button>
         </div>
       </div>
 
-      <!-- Genre chip strip -->
-      <div class="genre-rail" id="genreStrip">
-        <button class="g-chip active" data-genre="">All</button>
-        <button class="g-chip" data-genre="Soca">Soca</button>
-        <button class="g-chip" data-genre="Dancehall">Dancehall</button>
-        <button class="g-chip" data-genre="Hip Hop">Hip Hop</button>
-        <button class="g-chip" data-genre="Afrobeats">Afrobeats</button>
-        <button class="g-chip" data-genre="Reggaeton">Reggaeton</button>
-        <button class="g-chip" data-genre="Pop">Pop</button>
-        <button class="g-chip" data-genre="House">House</button>
-        <button class="g-chip" data-genre="R&B">R&amp;B</button>
-        <button class="g-chip" data-genre="Slows">Slows</button>
-        <button class="g-chip" data-genre="Indian">Indian</button>
-        <button class="g-chip" data-genre="Latin">Latin</button>
-        <button class="g-chip g-chip-add" id="addGenreBtn">＋</button>
+      <!-- Explore sub-view -->
+      <div class="stream-content" data-subview="explore" style="display:flex;flex-direction:column">
+        <div class="section-label">Browse Free Music Portals</div>
+        <div class="stream-grid" id="portalGrid"></div>
+        <div class="section-label">Pre-Seeded Streams</div>
+        <div id="sourceList" class="source-list"></div>
       </div>
 
-      <!-- Three-column body -->
-      <div class="coll-body">
-        <!-- Sidebar: stats -->
-        <aside class="coll-sidebar sp-glass">
-          <div class="coll-stat-label">Library</div>
-          <div class="coll-stat-row">
-            <span id="collTrackCount">0 tracks</span>
-            <span id="cacheCount">0 waveforms</span>
+      <!-- Browser sub-view -->
+      <div data-subview="browser" style="display:none;flex:1;flex-direction:column;position:relative;overflow:hidden">
+        <div class="sandbox-wrap" style="flex:1;margin:10px 16px 80px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);background:var(--bg2);position:relative">
+          <div class="sandbox-placeholder" id="sandboxPh">
+            <div class="sp-icon">🌐</div>
+            <p>Tap a portal above or paste a URL to browse.</p>
+            <p style="font-size:11px;color:var(--t3);margin-top:6px">Direct MP3/MP4 links stream instantly. Open directories auto-extract all media links.</p>
           </div>
-          <div id="folderInfo" class="coll-folder-info">No folder linked.</div>
-        </aside>
-
-        <!-- Centre: track list -->
-        <div class="coll-list-wrap sp-glass">
-          <div id="trackList" class="track-list">
-            <div class="ez-empty">
-              <div class="ez-icon">📁</div>
-              <p>Open a music folder to import your collection.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right: metadata editor -->
-        <aside class="coll-meta sp-glass">
-          <div class="coll-stat-label">Track Info</div>
-          <div id="metadataEditor">
-            <div class="ez-empty" style="font-size:11px;padding:16px 0;">
-              Select a track to edit.
-            </div>
-          </div>
-        </aside>
-      </div>
-
-      <!-- MP4 video viewport -->
-      <div id="videoViewport" class="coll-video" style="display:none;">
-        <video id="videoEl" controls style="width:100%;border-radius:12px;"></video>
-        <button class="btn btn--xs" id="closeVideo" style="margin-top:6px;">✕ Close</button>
-      </div>
-    </section>
-
-    <!-- ─────────────────────────────────────────
-         ARCHIVE — Crates · Search · Analytics
-    ───────────────────────────────────────── -->
-    <section class="zone zone-archive" id="zone-archive">
-      <div class="arc-topbar">
-        <div>
-          <button id="newCrate" class="btn primary">＋ Crate</button>
-          <button id="newSmartCrate" class="btn">⚡ Smart Crate</button>
-        </div>
-        <input id="globalSearch" class="arc-search"
-          placeholder="Search: title, artist, bpm:90-120, energy:>7, favorite:true"/>
-      </div>
-
-      <div id="searchResults" class="track-list sp-glass" style="padding:10px;border-radius:14px;margin-bottom:10px;min-height:48px;"></div>
-
-      <div class="arc-body">
-        <div class="sp-glass" style="padding:12px;overflow:auto;">
-          <div class="coll-stat-label" style="margin-bottom:8px;">Crates</div>
-          <div id="crateList" class="crate-list"></div>
-        </div>
-        <div class="sp-glass arc-crate-detail" style="padding:12px;overflow:auto;">
-          <h3 id="crateTitle" style="font-size:13px;font-weight:700;margin-bottom:8px;">Select a crate</h3>
-          <div id="crateRules" style="margin-bottom:10px;"></div>
-          <div id="crateTracks" class="track-list"></div>
-        </div>
-      </div>
-
-      <!-- Analytics strip -->
-      <div class="arc-analytics">
-        <div class="sp-glass arc-analytics-pod">
-          <div class="coll-stat-label">Overview</div>
-          <div id="analyticsOverview"></div>
-        </div>
-        <div class="sp-glass arc-analytics-pod">
-          <div class="coll-stat-label" style="margin-bottom:6px;">Session</div>
-          <div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap;">
-            <button id="startSession" class="btn btn--xs primary">▶ Start</button>
-            <button id="stopSession" class="btn btn--xs">⏹ Stop</button>
-            <button id="exportSession" class="btn btn--xs">↓ Export</button>
-            <button id="clearAnalytics" class="btn btn--xs danger">✕ Clear</button>
-          </div>
-          <div id="sessionLog" class="session-log"></div>
-        </div>
-        <div class="sp-glass arc-analytics-pod">
-          <div class="coll-stat-label">Library Health</div>
-          <div id="healthReport"></div>
-        </div>
-      </div>
-    </section>
-
-  </div><!-- /workspace -->
-
-  <!-- ═══════════════════════════════════════════════════
-       ZONE 3 — PERFORMANCE DECK DRAWER
-       Collapsible from bottom. Slides over content.
-       Full tactile controls tuned for Samsung S23 Ultra.
-       ═══════════════════════════════════════════════════ -->
-  <div class="deck-drawer" id="deckDrawer">
-    <!-- Drag handle -->
-    <div class="drawer-handle" id="drawerHandle">
-      <div class="drawer-handle-bar"></div>
-      <div class="drawer-handle-label">
-        <span>PERFORMANCE DECKS</span>
-        <div class="drawer-session-btns">
-          <button id="startSession2" class="btn btn--xs primary">⏺ Session</button>
-          <button id="stopSession2" class="btn btn--xs">⏹</button>
+          <iframe id="streamFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" title="Stream Portal"></iframe>
+          <button id="extractFab" class="extract-fab">⛏ Extract Links</button>
         </div>
       </div>
     </div>
 
-    <!-- Deck content -->
-    <div class="drawer-content">
-      <!-- Deck A -->
-      <div class="d-deck d-deck--a">
-        <div class="d-deck-header">
-          <span class="d-badge d-badge--a">A</span>
-          <div class="d-track-name" id="deckATitle">No track loaded</div>
-          <div class="d-harmonic-badge" id="deckAHarmonic"></div>
-        </div>
-        <canvas id="waveA" class="d-wave"></canvas>
-        <div id="deckAVideo" class="d-video" style="display:none;">
-          <video id="deckAVideoEl" style="width:100%;border-radius:8px;max-height:100px;"></video>
-        </div>
-        <div class="d-cue-row" id="cuesA"></div>
-        <div class="d-transport">
-          <button id="loadA" class="d-btn">Load</button>
-          <button id="cueA" class="d-btn">Cue</button>
-          <button id="syncA" class="d-btn">Sync</button>
-          <button id="playA" class="d-btn d-play d-play--a">▶</button>
-        </div>
-        <div class="d-pitch-row">
-          <span class="d-pitch-label">PITCH</span>
-          <input id="pitchA" type="range" min="-12" max="12" step="0.1" value="0" class="d-pitch-slider">
-          <span id="pitchAVal" class="d-pitch-val">0.0</span>
-        </div>
+    <!-- ════ PAGE 2 — AUDIO PLAYER ════ -->
+    <div class="page" id="page-player" data-page="player">
+      <div class="subtab-bar" style="padding-top:16px">
+        <button class="subtab active" data-sub="nowplaying">Now Playing</button>
+        <button class="subtab" data-sub="tracks">Tracks</button>
+        <button class="subtab" data-sub="eq">Audio Presets</button>
       </div>
 
-      <!-- Mixer column -->
-      <div class="d-mixer">
-        <div class="d-mixer-label">MIXER</div>
+      <!-- Now Playing -->
+      <div data-subview="nowplaying" class="now-playing-view active">
 
-        <!-- VU meters -->
-        <div class="d-meters">
-          <div class="d-meter-bar"><div class="d-meter-fill" id="meterL"></div></div>
-          <div class="d-meter-bar"><div class="d-meter-fill" id="meterR"></div></div>
-        </div>
-
-        <!-- Channel faders -->
-        <div class="d-faders">
-          <div class="d-fader-col">
-            <div class="d-fader-label">A</div>
-            <div class="d-fader-track">
-              <input id="faderA" type="range" min="0" max="1" step="0.01" value="1"
-                class="d-fader" style="writing-mode:vertical-lr;direction:rtl;">
-            </div>
-          </div>
-          <div class="d-fader-col">
-            <div class="d-fader-label">MST</div>
-            <div class="d-fader-track">
-              <input id="masterGain" type="range" min="0" max="1.5" step="0.01" value="1"
-                class="d-fader" style="writing-mode:vertical-lr;direction:rtl;">
-            </div>
-          </div>
-          <div class="d-fader-col">
-            <div class="d-fader-label">B</div>
-            <div class="d-fader-track">
-              <input id="faderB" type="range" min="0" max="1" step="0.01" value="1"
-                class="d-fader" style="writing-mode:vertical-lr;direction:rtl;">
+        <!-- Vinyl / Artwork hero -->
+        <div class="np-art-wrap" id="npArtWrap">
+          <div class="np-art-wrap-inner">
+            <div class="np-vinyl">
+              <div class="np-vinyl-disc" id="npVinylDisc">
+                <div class="np-vinyl-art" id="npVinylArt">♪</div>
+              </div>
+              <div class="np-vinyl-arm" id="npArm"></div>
             </div>
           </div>
         </div>
 
-        <!-- Crossfader -->
-        <div class="d-xfade-wrap">
-          <div class="d-xfade-labels"><span>A</span><span>B</span></div>
-          <input id="xfader" type="range" min="0" max="1" step="0.001" value="0.5" class="d-xfader">
+        <!-- Track info -->
+        <div class="np-info-panel">
+          <div class="np-title" id="npTitle">No track loaded</div>
+          <div class="np-artist" id="npArtist">Open My Library to begin</div>
+          <div class="np-meta-row">
+            <span class="np-tag hl" id="npBpm" style="display:none"></span>
+            <span class="np-tag hl" id="npKey" style="display:none"></span>
+          </div>
         </div>
 
-        <!-- Limiter status -->
-        <div class="d-limiter-status" id="limiterStatus">⬤ Limiter</div>
+        <!-- Seek bar -->
+        <div class="np-seek-wrap">
+          <input type="range" class="np-seek" id="npSeek" min="0" max="1000" value="0"/>
+          <div class="np-times">
+            <span id="npNow">0:00</span>
+            <span id="npDur">0:00</span>
+          </div>
+        </div>
 
-        <!-- Recommendations -->
-        <div class="d-recs" id="recommendations">
-          Load a deck to see harmonic matches.
+        <!-- Transport -->
+        <div class="np-controls">
+          <button class="np-ctrl shuffle" id="npShuffleBtn" title="Shuffle"></button>
+          <button class="np-ctrl" id="npPrevBtn" title="Previous">⏮</button>
+          <button class="np-play-btn" id="npPlayBtn">▶</button>
+          <button class="np-ctrl" id="npNextBtn" title="Next">⏭</button>
+          <button class="np-ctrl repeat" id="npRepeatBtn" title="Repeat"></button>
+        </div>
+
+        <!-- Action row -->
+        <div class="np-actions">
+          <button class="np-action-btn" onclick="MS.openFolder()">
+            <span style="font-size:22px">📁</span>
+            <span>Open</span>
+          </button>
+          <button class="np-action-btn" onclick="showPage('library')">
+            <span style="font-size:22px">♫</span>
+            <span>Library</span>
+          </button>
+          <button class="np-action-btn" id="npFavBtn" onclick="toggleFavourite()">
+            <span style="font-size:22px" id="npFavIcon">♡</span>
+            <span>Favourite</span>
+          </button>
+          <button class="np-action-btn" onclick="showPage('dj')">
+            <span style="font-size:22px">🎛</span>
+            <span>DJ Deck</span>
+          </button>
         </div>
       </div>
 
-      <!-- Deck B -->
-      <div class="d-deck d-deck--b">
-        <div class="d-deck-header">
-          <span class="d-badge d-badge--b">B</span>
-          <div class="d-track-name" id="deckBTitle">No track loaded</div>
-          <div class="d-harmonic-badge" id="deckBHarmonic"></div>
+      <!-- Tracks sub-view -->
+      <div data-subview="tracks" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+        <div style="padding:10px 16px">
+          <input class="vz-input" id="trackSearch" placeholder="Search title, artist, BPM, key…"/>
         </div>
-        <canvas id="waveB" class="d-wave"></canvas>
-        <div id="deckBVideo" class="d-video" style="display:none;">
-          <video id="deckBVideoEl" style="width:100%;border-radius:8px;max-height:100px;"></video>
+        <div class="genre-rail" id="genreRail"></div>
+        <div id="trackList" class="track-list-view" style="flex:1;overflow-y:auto"></div>
+      </div>
+
+      <!-- EQ sub-view -->
+      <div data-subview="eq" class="eq-preset-view" style="display:none">
+        <div class="section-label">Presets</div>
+        <div class="eq-preset-row">
+          <button class="eq-preset-chip active" data-preset="Flat" onclick="applyEQPreset('Flat')">Flat</button>
+          <button class="eq-preset-chip" data-preset="Bass" onclick="applyEQPreset('Bass')">Bass Boost</button>
+          <button class="eq-preset-chip" data-preset="Treble" onclick="applyEQPreset('Treble')">Treble</button>
+          <button class="eq-preset-chip" data-preset="Vocal" onclick="applyEQPreset('Vocal')">Vocal</button>
+          <button class="eq-preset-chip" data-preset="Hip Hop" onclick="applyEQPreset('Hip Hop')">Hip Hop</button>
+          <button class="eq-preset-chip" data-preset="Pop" onclick="applyEQPreset('Pop')">Pop</button>
+          <button class="eq-preset-chip" data-preset="Rock" onclick="applyEQPreset('Rock')">Rock</button>
+          <button class="eq-preset-chip" data-preset="Classical" onclick="applyEQPreset('Classical')">Classical</button>
         </div>
-        <div class="d-cue-row" id="cuesB"></div>
-        <div class="d-transport">
-          <button id="loadB" class="d-btn">Load</button>
-          <button id="cueB" class="d-btn">Cue</button>
-          <button id="syncB" class="d-btn">Sync</button>
-          <button id="playB" class="d-btn d-play d-play--b">▶</button>
+        <div class="section-label">Crossfade</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+          <button class="eq-preset-chip" data-crossfade="0">Off</button>
+          <button class="eq-preset-chip" data-crossfade="5">5s</button>
+          <button class="eq-preset-chip" data-crossfade="10">10s</button>
+          <button class="eq-preset-chip" data-crossfade="15">15s</button>
+          <button class="eq-preset-chip" data-crossfade="20">20s</button>
         </div>
-        <div class="d-pitch-row">
-          <span class="d-pitch-label">PITCH</span>
-          <input id="pitchB" type="range" min="-12" max="12" step="0.1" value="0" class="d-pitch-slider">
-          <span id="pitchBVal" class="d-pitch-val">0.0</span>
+        <div class="section-label">Manual EQ — 5 Band</div>
+        <div class="eq-bands">
+          <div class="eq-band-col"><div class="eq-band-val">0</div><input type="range" class="eq-band-slider" min="-15" max="15" value="0" orient="vertical"/><div class="eq-band-freq">60Hz</div></div>
+          <div class="eq-band-col"><div class="eq-band-val">0</div><input type="range" class="eq-band-slider" min="-15" max="15" value="0" orient="vertical"/><div class="eq-band-freq">250Hz</div></div>
+          <div class="eq-band-col"><div class="eq-band-val">0</div><input type="range" class="eq-band-slider" min="-15" max="15" value="0" orient="vertical"/><div class="eq-band-freq">1kHz</div></div>
+          <div class="eq-band-col"><div class="eq-band-val">0</div><input type="range" class="eq-band-slider" min="-15" max="15" value="0" orient="vertical"/><div class="eq-band-freq">4kHz</div></div>
+          <div class="eq-band-col"><div class="eq-band-val">0</div><input type="range" class="eq-band-slider" min="-15" max="15" value="0" orient="vertical"/><div class="eq-band-freq">12kHz</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ PAGE 3 — VIDEO PLAYER ════ -->
+    <div class="page" id="page-video" data-page="video">
+      <div class="subtab-bar" style="padding-top:16px">
+        <button class="subtab active" data-sub="videoplayer">Video Player</button>
+        <button class="subtab" data-sub="vdownload">Download</button>
+      </div>
+
+      <!-- Video player sub-view -->
+      <div id="videoStage" data-subview="videoplayer" class="video-stage active" style="display:flex;flex:1;position:relative">
+        <video id="mainVideoEl" playsinline></video>
+        <div class="video-placeholder" id="videoPh">
+          <div class="vp-icon">🎬</div>
+          <p>Paste a video URL below or tap a video in the Stream Hub</p>
+          <button class="vz-btn sm" onclick="qs('[data-sub=vdownload]',document).click()">Paste URL</button>
+        </div>
+        <div class="video-overlay" id="videoOverlay">
+          <div class="vo-title" id="voTitle">—</div>
+          <input type="range" class="vo-seek" id="voSeek" min="0" max="1000" value="0"/>
+          <div class="vo-controls">
+            <button class="vo-btn" id="voPrevBtn">−10s</button>
+            <button class="vo-btn vo-play" id="voPlayBtn">▶</button>
+            <button class="vo-btn" id="voNextBtn">+10s</button>
+            <span class="vo-times" id="voTimes">0:00 / 0:00</span>
+          </div>
         </div>
       </div>
 
-      <!-- Quick load strip -->
-      <div class="d-quickload-strip">
-        <div class="d-ql-label">
-          QUICK LOAD
-          <input id="qlFilter" placeholder="filter…" class="d-ql-filter">
+      <!-- Download sub-view -->
+      <div data-subview="vdownload" class="vdl-panel" style="display:none">
+        <div class="section-label">Load or Download Video</div>
+        <input class="vz-input" id="vdlUrlIn" placeholder="Paste MP4 or video stream URL…" style="margin-bottom:8px"/>
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <input id="vdlArtistIn" class="vz-input" placeholder="Artist" style="margin-bottom:6px;display:none"/>
+        <input id="vdlAlbumIn"  class="vz-input" placeholder="Album"  style="margin-bottom:6px;display:none"/>
+        <input id="vdlTitleIn"  class="vz-input" placeholder="Title"  style="margin-bottom:6px;display:none"/>
+        <button id="vdlBtn" class="vz-btn primary" style="flex:1">▶ Play</button>
+          <button id="vdlSaveBtn" class="vz-btn" style="flex:1">⬇ Download</button>
         </div>
-        <div id="quickLoad" class="d-ql-list"></div>
+        <div class="section-label">Test Videos</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div class="source-item" onclick="loadVideoUrl('https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4','Big Buck Bunny');document.querySelector('[data-sub=videoplayer]').click()">
+            <span class="si-pip pip-mp4"></span>
+            <div class="si-info"><div class="si-name">Big Buck Bunny</div><div class="si-meta">1080p · Google Test</div></div>
+            <button class="si-btn">▶</button>
+          </div>
+          <div class="source-item" onclick="loadVideoUrl('https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4','Elephants Dream');document.querySelector('[data-sub=videoplayer]').click()">
+            <span class="si-pip pip-mp4"></span>
+            <div class="si-info"><div class="si-name">Elephants Dream</div><div class="si-meta">Cinematic · Google Test</div></div>
+            <button class="si-btn">▶</button>
+          </div>
+          <div class="source-item" onclick="loadVideoUrl('https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4','For Bigger Blazes');document.querySelector('[data-sub=videoplayer]').click()">
+            <span class="si-pip pip-mp4"></span>
+            <div class="si-info"><div class="si-name">For Bigger Blazes</div><div class="si-meta">Mobile Test</div></div>
+            <button class="si-btn">▶</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ PAGE 4 — LIBRARY ════ -->
+    <div class="page" id="page-library" data-page="library">
+      <div class="lib-topbar">
+        <div class="lib-search-wrap">
+          <span class="lib-search-icon">🔍</span>
+          <input class="vz-input lib-search" id="libSearch" placeholder="Search library…"/>
+        </div>
+        <button id="libOpenFolder" class="vz-btn primary sm">📁 Open</button>
+        <button id="healthScanBtn" class="vz-btn sm">🔬 Health</button>
+      </div>
+      <div class="subtab-bar">
+        <button class="subtab active" data-sub="songs">Songs</button>
+        <button class="subtab" data-sub="folders">Folders</button>
+        <button class="subtab" data-sub="playlists">Playlists</button>
+      </div>
+      <div class="lib-content">
+        <div data-subview="songs" id="libTrackList" style="display:block"></div>
+        <div id="healthReport" style="padding:0 16px 80px;display:none"></div>
+        <div data-subview="folders" id="folderView" style="display:none"></div>
+        <div data-subview="playlists" id="playlistView" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- ════ PAGE 5 — DJ CONSOLE ════ -->
+    <div class="page dj-page" id="page-dj" data-page="dj">
+      <!-- Portrait hint -->
+      <div class="dj-landscape-hint">
+        <div class="dlh-icon">📱</div>
+        <h3 style="font-size:18px;margin-bottom:8px">Rotate to Landscape</h3>
+        <p style="color:var(--t3);font-size:13px">The DJ console works best in landscape mode. Rotate your device to access the full mixer.</p>
+      </div>
+
+      <!-- Landscape content -->
+      <div class="dj-content">
+        <div class="dj-subtabs">
+          <button class="dj-stab active" data-djsub="decks">Twin Decks</button>
+          <button class="dj-stab" data-djsub="fx">FX Pad</button>
+          <button class="dj-stab" data-djsub="eq">Graphic EQ</button>
+        </div>
+
+        <!-- Twin Decks -->
+        <div class="twin-decks active" id="twinDecksView">
+
+          <!-- Deck A -->
+          <div class="dj-deck">
+            <div class="dd-header">
+              <span class="dd-badge a">A</span>
+              <div class="dd-track" id="djATrack">No track loaded</div>
+              <span class="dd-bpm" id="djABpm"></span>
+              <span id="djAHarm" style="display:none;font-size:9px;border-radius:4px;padding:1px 5px;border:1px solid;margin-left:4px"></span>
+            </div>
+            <div class="dd-platter" id="platterAWrap">
+              <canvas id="platterA"></canvas>
+              <div class="dd-bpm-display">
+                <div class="dd-bpm-num" id="djABpmNum">—</div>
+                <div class="dd-bpm-lbl">BPM</div>
+              </div>
+              <!-- Hot cue pad grid overlay -->
+              <div class="dd-pad-grid" id="djAPadGrid"></div>
+            </div>
+            <canvas id="waveA" class="dd-wave"></canvas>
+            
+            <div class="dd-transport" id="djATransport">
+              <button id="djALoad" class="dd-btn">LOAD</button>
+              <button id="djACue"  class="dd-btn">CUE</button>
+              <button id="djASync" class="dd-btn">SYNC</button>
+              <button id="djAPlay" class="dd-btn dd-play a-play">▶</button>
+            </div>
+            <div class="dd-pitch">
+              <span class="dd-pitch-lbl">PITCH</span>
+              <input type="range" id="pitchA" min="-12" max="12" step="0.1" value="0" style="flex:1">
+              <span class="dd-pitch-val" id="pitchAVal">0.0</span>
+            </div>
+            <button id="djAPadToggle" class="dd-btn" style="margin-top:3px;font-size:9px">⬛ Pads</button>
+          </div>
+
+          <!-- Mixer -->
+          <div class="dj-mixer">
+            <div class="dm-label">MIXER</div>
+            <div class="dm-meters">
+              <div class="dm-meter-track"><div class="dm-meter-fill" id="meterL"></div></div>
+              <div class="dm-meter-track"><div class="dm-meter-fill" id="meterR"></div></div>
+            </div>
+            <div class="dm-faders">
+              <div class="dm-fader-col"><div class="dm-fader-lbl">A</div><input id="djFaderA" type="range" min="0" max="1" step="0.01" value="1" class="dm-fader"></div>
+              <div class="dm-fader-col"><div class="dm-fader-lbl">M</div><input id="djMaster" type="range" min="0" max="1.5" step="0.01" value="1" class="dm-fader"></div>
+              <div class="dm-fader-col"><div class="dm-fader-lbl">B</div><input id="djFaderB" type="range" min="0" max="1" step="0.01" value="1" class="dm-fader"></div>
+            </div>
+            <div class="dm-xfade">
+              <div class="dm-xfade-labels"><span>A</span><span>B</span></div>
+              <input id="djXfader" type="range" min="0" max="1" step="0.001" value="0.5" class="dm-xfader"/>
+            </div>
+            <div class="dm-limiter" id="limiterStatus">🔴 Limiter: standby</div>
+            <button id="harmonicToggle" class="dd-btn" style="margin-top:4px;font-size:9px;width:100%">⚡ Harmonic</button>
+          </div>
+
+          <!-- Deck B -->
+          <div class="dj-deck">
+            <div class="dd-header">
+              <span class="dd-badge b">B</span>
+              <div class="dd-track" id="djBTrack">No track loaded</div>
+              <span class="dd-bpm" id="djBBpm"></span>
+              <span id="djBHarm" style="display:none;font-size:9px;border-radius:4px;padding:1px 5px;border:1px solid;margin-left:4px"></span>
+            </div>
+            <div class="dd-platter">
+              <canvas id="platterB"></canvas>
+              <div class="dd-bpm-display">
+                <div class="dd-bpm-num" id="djBBpmNum">—</div>
+                <div class="dd-bpm-lbl">BPM</div>
+              </div>
+              <div class="dd-pad-grid" id="djBPadGrid"></div>
+            </div>
+            <canvas id="waveB" class="dd-wave"></canvas>
+            
+            <div class="dd-transport" id="djBTransport">
+              <button id="djBLoad" class="dd-btn">LOAD</button>
+              <button id="djBCue"  class="dd-btn">CUE</button>
+              <button id="djBSync" class="dd-btn">SYNC</button>
+              <button id="djBPlay" class="dd-btn dd-play b-play">▶</button>
+            </div>
+            <div class="dd-pitch">
+              <span class="dd-pitch-lbl">PITCH</span>
+              <input type="range" id="pitchB" min="-12" max="12" step="0.1" value="0" style="flex:1">
+              <span class="dd-pitch-val" id="pitchBVal">0.0</span>
+            </div>
+            <button id="djBPadToggle" class="dd-btn" style="margin-top:3px;font-size:9px">⬛ Pads</button>
+          </div>
+        </div>
+
+        <!-- FX Pad -->
+        <div class="fx-pad-view" id="fxPadView">
+          <div class="fx-selector">
+            <button class="fx-chip active" data-fx="delay">Echo / Delay</button>
+            <button class="fx-chip" data-fx="reverb">Reverb</button>
+            <button class="fx-chip" data-fx="filter">Filter</button>
+            <button class="fx-chip" data-fx="flanger">Flanger</button>
+          </div>
+          <div class="fx-xy-pad" id="fxXYPad" style="flex:1;min-height:140px">
+            <div class="fx-xy-grid"></div>
+            <div class="fx-xy-dot" id="fxDot" style="left:50%;top:50%"></div>
+            <div class="fx-xy-labels">
+              <span class="fx-xy-label">INTENSITY →</span>
+              <span class="fx-xy-label">↓ RATE</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Graphic EQ -->
+        <div class="geq-view" id="geqView">
+          <div class="geq-presets">
+            <button class="geq-preset-btn active" data-preset="Flat"      onclick="applyEQPreset('Flat')">Flat</button>
+            <button class="geq-preset-btn" data-preset="Bass"             onclick="applyEQPreset('Bass')">Bass</button>
+            <button class="geq-preset-btn" data-preset="Hip Hop"          onclick="applyEQPreset('Hip Hop')">Hip Hop</button>
+            <button class="geq-preset-btn" data-preset="Pop"              onclick="applyEQPreset('Pop')">Pop</button>
+            <button class="geq-preset-btn" data-preset="Rock"             onclick="applyEQPreset('Rock')">Rock</button>
+            <button class="geq-preset-btn" data-preset="Classical"        onclick="applyEQPreset('Classical')">Classical</button>
+          </div>
+          <div class="geq-bands-wrap">
+            <div class="geq-band"><div class="geq-val">0</div><input type="range" class="geq-slider" min="-15" max="15" value="0" orient="vertical"/><div class="geq-freq">60Hz</div></div>
+            <div class="geq-band"><div class="geq-val">0</div><input type="range" class="geq-slider" min="-15" max="15" value="0" orient="vertical"/><div class="geq-freq">250Hz</div></div>
+            <div class="geq-band"><div class="geq-val">0</div><input type="range" class="geq-slider" min="-15" max="15" value="0" orient="vertical"/><div class="geq-freq">1kHz</div></div>
+            <div class="geq-band"><div class="geq-val">0</div><input type="range" class="geq-slider" min="-15" max="15" value="0" orient="vertical"/><div class="geq-freq">4kHz</div></div>
+            <div class="geq-band"><div class="geq-val">0</div><input type="range" class="geq-slider" min="-15" max="15" value="0" orient="vertical"/><div class="geq-freq">12kHz</div></div>
+          </div>
+        </div>
+
+      </div><!-- /dj-content -->
+    </div><!-- /dj-page -->
+
+  </div><!-- /pages -->
+
+  <!-- ════ BOTTOM NAV ════ -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-page="stream">
+      <span class="ni-icon">🌐</span>
+      <span class="ni-label">Stream</span>
+    </button>
+    <button class="nav-item" data-page="player">
+      <span class="ni-icon">🎵</span>
+      <span class="ni-label">Player</span>
+    </button>
+    <button class="nav-item" data-page="video">
+      <span class="ni-icon">🎬</span>
+      <span class="ni-label">Video</span>
+    </button>
+    <button class="nav-item" data-page="library">
+      <span class="ni-icon">📁</span>
+      <span class="ni-label">Library</span>
+    </button>
+    <button class="nav-item" data-page="dj">
+      <span class="ni-icon">🎧</span>
+      <span class="ni-label">DJ</span>
+    </button>
+  </nav>
+
+  <!-- ════ EXTRACTED SHEET ════ -->
+  <div class="extracted-sheet" id="extractedSheet">
+    <div class="es-head">
+      <div>
+        <h3 style="font-size:15px">Media Links</h3>
+        <p id="extractedCount" style="font-size:11px;color:var(--t3);margin-top:2px"></p>
+      </div>
+      <button id="extractedClose" class="vz-btn sm">✕ Close</button>
+    </div>
+    <div id="extractedList" class="es-list"></div>
+  </div>
+
+  <!-- ════ SAVE SHEET ════ -->
+  <div class="save-sheet" id="saveSheet">
+    <div class="save-card">
+      <h3>💾 Save to My Library</h3>
+      <div class="save-fields">
+        <input class="vz-input" id="saveArtistIn" placeholder="Artist Name"/>
+        <input class="vz-input" id="saveAlbumIn"  placeholder="Album Name"/>
+        <input class="vz-input" id="saveTitleIn"  placeholder="Track Title"/>
+        <select class="vz-input" id="saveGenreIn">
+          <option value="">— Genre —</option>
+          <option>Soca</option><option>Dancehall</option><option>Hip Hop</option>
+          <option>Afrobeats</option><option>Reggaeton</option><option>Pop</option>
+          <option>House</option><option>R&B</option><option>Slows</option>
+          <option>Indian</option><option>Latin</option><option>Other</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button id="saveConfirm" class="vz-btn primary" style="flex:1">📁 Save to Device</button>
+        <button id="saveCancel"  class="vz-btn" style="flex:1">Cancel</button>
       </div>
     </div>
   </div>
-
-  <!-- ═══ IFRAME BLOCK MODAL ═══ -->
-  <div id="frameBlockModal" class="modal-bg" style="display:none;">
-    <div class="modal-card">
-      <div style="font-size:36px;margin-bottom:10px;">🚫</div>
-      <h3 style="margin-bottom:8px;">Site blocks embedding</h3>
-      <p id="frameBlockUrl" style="font-size:10px;color:var(--text3);word-break:break-all;margin:6px 0;"></p>
-      <p style="font-size:12px;color:var(--text2);line-height:1.6;">
-        Open in a new window, find a direct MP3/MP4 link,<br>then paste it back into the Stream Vault.
-      </p>
-      <div style="display:flex;gap:8px;justify-content:center;margin-top:16px;">
-        <button id="frameBlockOpen" class="btn primary">↗ Open in New Window</button>
-        <button id="frameBlockClose" class="btn">Dismiss</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Settings strip (hidden, referenced by app.js) -->
-  <div style="display:none;">
-    <span id="systemStatus"></span>
-    <span id="dbStatus"></span>
-    <button id="rebuildWaves"></button>
-    <button id="wipeDb"></button>
-  </div>
-
-  <!-- Hidden audio elements -->
-  <audio id="audioA"></audio>
-  <audio id="audioB"></audio>
-  <audio id="mainAudio"></audio>
 
 </div><!-- /app -->
 
-<!-- Scripts — order matters -->
-<script src="app.js"></script>
-<script src="stream-vault.js"></script>
-<script src="spatial.js"></script>
-<script src="phases/phase17-ux.js"></script>
+<!-- Hidden audio elements -->
+<audio id="audioA"></audio>
+<audio id="audioB"></audio>
+<audio id="mainAudio"></audio>
+
+<script src="engine.js"></script>
+<script src="phase16.js"></script>
+<script src="phase1.js"></script>
+<script src="phase2.js"></script>
+<script src="phase3.js"></script>
+<script src="phase4.js"></script>
 <script src="phase5.js"></script>
+<script src="phase6.js"></script>
+<script src="phase7.js"></script>
+<script src="phase8.js"></script>
+<script src="phase9.js"></script>
+<script src="phase10.js"></script>
+<script src="phase11.js"></script>
+<script src="phase12.js"></script>
+<script src="phase13.js"></script>
+<script src="phase14.js"></script>
+<script src="phase15.js"></script>
+<script src="phase17.js"></script>
+<script src="ui-upgrade.js"></script>
+<script src="app-ui.js"></script>
 <script>
-  if ('serviceWorker' in navigator)
-    window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(console.warn));
+  if('serviceWorker' in navigator)
+    window.addEventListener('load', ()=>navigator.serviceWorker.register('./sw.js').catch(console.warn));
 </script>
-<script src="phase6-engine.js"></script>
-<script src="phase7-engine.js"></script>
-<script src="phase8-engine.js"></script>
-<script src="phase9-engine.js"></script>
-<script src="phase10/phase10.js"></script>
-
-
-
-
-
-
-
-
-
-
 </body>
 </html>
