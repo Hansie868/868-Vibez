@@ -16,7 +16,6 @@
   <!-- SPLASH SCREEN -->
   <div id="splash">
     <img src="cover.png" alt="868 Vibez" id="splashCover">
-    <div id="splashGlow"></div>
     <p id="splashSub">868 LAB STUDIOS™</p>
   </div>
 
@@ -25,7 +24,6 @@
 
     <!-- PAGE: PLAYER -->
     <section id="page-player" class="page active">
-
       <header class="page-header">
         <div class="header-brand">
           <span class="brand-label">868 LAB STUDIOS™</span>
@@ -34,6 +32,7 @@
         <button id="importBtn" class="btn-import">
           <span class="import-icon">＋</span> Import
         </button>
+        <!-- Fix #2: multiple + directory support -->
         <input id="fileInput" type="file" accept="audio/*" multiple hidden>
       </header>
 
@@ -41,14 +40,13 @@
         <div class="vinyl-ring">
           <div id="vinyl" class="vinyl-disc">
             <img src="cover.png" alt="" class="vinyl-art">
-            <div class="vinyl-label">
-              <div class="vinyl-center-dot"></div>
-            </div>
+            <div class="vinyl-center-dot"></div>
           </div>
         </div>
         <div class="track-info">
           <h2 id="songTitle" class="track-title">No track loaded</h2>
-          <p id="artistName" class="track-artist">Import music to begin</p>
+          <!-- Fix #1: artist only shown when available -->
+          <p id="artistName" class="track-artist hidden"></p>
         </div>
       </div>
 
@@ -60,7 +58,6 @@
             <span id="durTime" class="time-label">0:00</span>
           </div>
         </div>
-
         <div class="transport">
           <button id="prevBtn" class="transport-btn">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
@@ -73,7 +70,6 @@
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zm2-8.14 5.23 3.64L8 17.14V9.86zM16 6h2v12h-2z"/></svg>
           </button>
         </div>
-
         <div class="tool-row">
           <button id="queueBtn" class="tool-btn">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
@@ -105,9 +101,15 @@
           <span class="brand-label">LOCAL STORE</span>
           <span class="brand-name">Library</span>
         </div>
+        <!-- Fix #8: Import button on Library page -->
+        <button id="libImportBtn" class="btn-import">
+          <span class="import-icon">＋</span> Import
+        </button>
+        <input id="libFileInput" type="file" accept="audio/*" multiple hidden>
       </header>
       <div class="library-tabs">
-        <button class="lib-tab active" data-tab="songs">Songs</button>
+        <button class="lib-tab active" data-tab="folders">Folders</button>
+        <button class="lib-tab" data-tab="songs">Songs</button>
         <button class="lib-tab" data-tab="playlists">Playlists</button>
         <button class="lib-tab" data-tab="crates">Crates</button>
         <button class="lib-tab" data-tab="favorites">Favorites</button>
@@ -119,32 +121,133 @@
 
     <!-- PAGE: DJ CONSOLE -->
     <section id="page-dj" class="page">
+
+      <!-- Portrait message -->
       <div id="djPortraitMsg" class="dj-portrait-msg">
         <div class="rotate-icon">📱</div>
         <p>Turn your phone sideways<br>to enter DJ mode</p>
       </div>
-      <div id="djConsole" class="dj-console hidden">
-        <p class="dj-placeholder">DJ Console — Coming in Phase 4</p>
-      </div>
+
+      <!-- Full DJ Console — landscape only -->
+      <div id="djConsole" class="dj-console">
+
+        <!-- DECK A -->
+        <div class="dj-deck dj-deck-a">
+          <div class="dj-deck-title" id="deckATitle">Load a track</div>
+          <div class="dj-platter-wrap">
+            <canvas id="platA" class="dj-platter"></canvas>
+          </div>
+          <canvas id="waveA" class="dj-wave"></canvas>
+          <div class="dj-deck-controls">
+            <button class="dj-btn dj-play" id="playA" onclick="window.DJEngine.play('A')">▶</button>
+            <button class="dj-btn dj-cue"  id="cueA"  onclick="window.DJEngine.cue('A')">CUE</button>
+          </div>
+          <div class="dj-slider-row">
+            <div class="dj-slider-group">
+              <label class="dj-slider-label">PITCH</label>
+              <input id="pitchA" type="range" class="dj-slider dj-slider-v" min="-8" max="8" step="0.1" value="0" oninput="window.DJEngine.setPitch('A',this.value)">
+              <span id="pitchAVal" class="dj-slider-val">0%</span>
+            </div>
+            <div class="dj-slider-group">
+              <label class="dj-slider-label">VOL</label>
+              <input id="volA" type="range" class="dj-slider dj-slider-v" min="0" max="1" step="0.01" value="1" oninput="window.DJEngine.setVol('A',this.value)">
+            </div>
+          </div>
+          <div class="dj-time-row">
+            <span id="timeA" class="dj-time">0:00</span>
+            <span id="durA"  class="dj-time dj-time-dur">0:00</span>
+          </div>
+        </div>
+
+        <!-- MIXER -->
+        <div class="dj-mixer">
+          <!-- Load buttons -->
+          <div class="dj-load-row">
+            <button class="dj-btn dj-load dj-load-a" onclick="window.DJEngine.openBrowser('A')">LOAD A</button>
+            <button class="dj-btn dj-load dj-load-b" onclick="window.DJEngine.openBrowser('B')">LOAD B</button>
+          </div>
+
+          <!-- 3-Band EQ -->
+          <div class="dj-eq">
+            <div class="dj-eq-band">
+              <label class="dj-eq-label">HI</label>
+              <input id="eqHiA"  type="range" class="dj-eq-knob" min="0" max="2" step="0.01" value="1" oninput="window.DJEngine.setEQ('A','hi',this.value)">
+              <input id="eqHiB"  type="range" class="dj-eq-knob" min="0" max="2" step="0.01" value="1" oninput="window.DJEngine.setEQ('B','hi',this.value)">
+            </div>
+            <div class="dj-eq-band">
+              <label class="dj-eq-label">MID</label>
+              <input id="eqMidA" type="range" class="dj-eq-knob" min="0" max="2" step="0.01" value="1" oninput="window.DJEngine.setEQ('A','mid',this.value)">
+              <input id="eqMidB" type="range" class="dj-eq-knob" min="0" max="2" step="0.01" value="1" oninput="window.DJEngine.setEQ('B','mid',this.value)">
+            </div>
+            <div class="dj-eq-band">
+              <label class="dj-eq-label">LOW</label>
+              <input id="eqLoA"  type="range" class="dj-eq-knob" min="0" max="2" step="0.01" value="1" oninput="window.DJEngine.setEQ('A','lo',this.value)">
+              <input id="eqLoB"  type="range" class="dj-eq-knob" min="0" max="2" step="0.01" value="1" oninput="window.DJEngine.setEQ('B','lo',this.value)">
+            </div>
+          </div>
+
+          <!-- Crossfader -->
+          <div class="dj-xfader-wrap">
+            <div class="dj-xfader-labels"><span>A</span><span>B</span></div>
+            <input id="crossfader" type="range" class="dj-xfader" min="0" max="1" step="0.001" value="0.5" oninput="window.DJEngine.setCrossfader(this.value)">
+          </div>
+
+          <!-- Hot Cues -->
+          <div class="dj-hotcues">
+            <button class="dj-hotcue" id="hc0" onclick="window.DJEngine.hotCue(0)">1</button>
+            <button class="dj-hotcue" id="hc1" onclick="window.DJEngine.hotCue(1)">2</button>
+            <button class="dj-hotcue" id="hc2" onclick="window.DJEngine.hotCue(2)">3</button>
+            <button class="dj-hotcue" id="hc3" onclick="window.DJEngine.hotCue(3)">4</button>
+          </div>
+
+          <!-- Loop controls -->
+          <div class="dj-loop-row">
+            <button class="dj-btn dj-loop-btn" id="loopInBtn"  onclick="window.DJEngine.loopIn()">IN</button>
+            <button class="dj-btn dj-loop-btn dj-loop-toggle" id="loopToggle" onclick="window.DJEngine.loopToggle()">LOOP</button>
+            <button class="dj-btn dj-loop-btn" id="loopOutBtn" onclick="window.DJEngine.loopOut()">OUT</button>
+          </div>
+        </div>
+
+        <!-- DECK B -->
+        <div class="dj-deck dj-deck-b">
+          <div class="dj-deck-title" id="deckBTitle">Load a track</div>
+          <div class="dj-platter-wrap">
+            <canvas id="platB" class="dj-platter"></canvas>
+          </div>
+          <canvas id="waveB" class="dj-wave"></canvas>
+          <div class="dj-deck-controls">
+            <button class="dj-btn dj-play" id="playB" onclick="window.DJEngine.play('B')">▶</button>
+            <button class="dj-btn dj-cue"  id="cueB"  onclick="window.DJEngine.cue('B')">CUE</button>
+          </div>
+          <div class="dj-slider-row">
+            <div class="dj-slider-group">
+              <label class="dj-slider-label">PITCH</label>
+              <input id="pitchB" type="range" class="dj-slider dj-slider-v" min="-8" max="8" step="0.1" value="0" oninput="window.DJEngine.setPitch('B',this.value)">
+              <span id="pitchBVal" class="dj-slider-val">0%</span>
+            </div>
+            <div class="dj-slider-group">
+              <label class="dj-slider-label">VOL</label>
+              <input id="volB" type="range" class="dj-slider dj-slider-v" min="0" max="1" step="0.01" value="1" oninput="window.DJEngine.setVol('B',this.value)">
+            </div>
+          </div>
+          <div class="dj-time-row">
+            <span id="timeB" class="dj-time">0:00</span>
+            <span id="durB"  class="dj-time dj-time-dur">0:00</span>
+          </div>
+        </div>
+
+      </div><!-- /djConsole -->
     </section>
 
     <!-- BOTTOM NAV -->
     <nav id="bottomNav">
-      <button class="nav-btn active" data-page="player">
-        <span class="nav-icon">🎵</span>
-      </button>
-      <button class="nav-btn" data-page="radio">
-        <span class="nav-icon">📻</span>
-      </button>
-      <button class="nav-btn" data-page="library">
-        <span class="nav-icon">📁</span>
-      </button>
-      <button class="nav-btn" data-page="dj">
-        <span class="nav-icon">🔊</span>
-      </button>
+      <button class="nav-btn active" data-page="player"><span class="nav-icon">🎵</span></button>
+      <button class="nav-btn" data-page="radio"><span class="nav-icon">📻</span></button>
+      <button class="nav-btn" data-page="library"><span class="nav-icon">📁</span></button>
+      <button class="nav-btn" data-page="dj"><span class="nav-icon">🔊</span></button>
     </nav>
 
-  </div><!-- /app -->
+  </div>
 
   <!-- QUEUE PANEL -->
   <div id="queuePanel" class="panel-overlay">
@@ -155,6 +258,50 @@
         <button class="panel-close" data-close="queuePanel">✕</button>
       </div>
       <div id="queueList" class="list-container"></div>
+    </div>
+  </div>
+
+  <!-- DJ TRACK BROWSER -->
+  <div id="djBrowser" class="dj-browser-overlay">
+    <div class="dj-browser-sheet">
+      <div class="panel-handle"></div>
+      <div class="panel-head">
+        <h3 class="panel-title" id="djBrowserTitle">Load to Deck A</h3>
+        <button class="panel-close" onclick="window.DJEngine.closeBrowser()">✕</button>
+      </div>
+      <div class="dj-browser-tabs">
+        <button class="dj-btab active" data-btab="folders">Folders</button>
+        <button class="dj-btab" data-btab="playlists">Playlists</button>
+        <button class="dj-btab" data-btab="crates">Crates</button>
+      </div>
+      <div id="djBrowserList" class="list-container"></div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="toast"></div>
+
+  <!-- SONG ACTION SHEET — Add to Playlist / Crate -->
+  <div id="actionPanel" class="panel-overlay">
+    <div class="panel-sheet">
+      <div class="panel-handle"></div>
+      <div class="panel-head">
+        <h3 class="panel-title" id="actionPanelTitle">Add to…</h3>
+        <button class="panel-close" data-close="actionPanel">✕</button>
+      </div>
+      <div id="actionList" class="list-container"></div>
+    </div>
+  </div>
+
+  <!-- CREATE PLAYLIST / CRATE MODAL -->
+  <div id="createModal" class="create-modal hidden">
+    <div class="create-modal-card">
+      <h3 id="createModalTitle">New Playlist</h3>
+      <input id="createModalInput" class="create-modal-input" type="text" placeholder="Enter name…" maxlength="40">
+      <div class="create-modal-actions">
+        <button id="createModalCancel" class="create-modal-btn cancel">Cancel</button>
+        <button id="createModalConfirm" class="create-modal-btn confirm">Create</button>
+      </div>
     </div>
   </div>
 
