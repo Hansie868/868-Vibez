@@ -1330,7 +1330,7 @@ html, body {
 }
 
 .dj-deck-a .dj-deck-title { color: var(--red); }
-.dj-deck-b .dj-deck-title { color: var(--gold-hi); }
+.dj-deck-b .dj-deck-title { color: #4da6ff; }
 
 /* PLATTER */
 .dj-platter-wrap {
@@ -1384,9 +1384,9 @@ html, body {
 }
 
 .dj-deck-b .dj-play {
-  background: #8a6000;
-  border-color: var(--gold);
-  color: var(--gold-hi);
+  background: #003a6e;
+  border-color: #4da6ff;
+  color: #4da6ff;
 }
 
 .dj-play.playing {
@@ -1470,7 +1470,7 @@ html, body {
   letter-spacing: 0.04em;
 }
 
-.dj-deck-b .dj-time { color: var(--gold-hi); }
+.dj-deck-b .dj-time { color: #4da6ff; }
 .dj-time-dur { color: var(--sub) !important; }
 
 /* MIXER */
@@ -1506,9 +1506,9 @@ html, body {
 }
 
 .dj-load-b {
-  background: rgba(212,160,23,0.15);
-  border-color: var(--gold);
-  color: var(--gold-hi);
+  background: rgba(77,166,255,0.12);
+  border-color: #4da6ff;
+  color: #4da6ff;
 }
 
 /* EQ */
@@ -1573,14 +1573,14 @@ html, body {
 }
 
 .dj-xfader-labels span:first-child { color: var(--red); }
-.dj-xfader-labels span:last-child  { color: var(--gold-hi); }
+.dj-xfader-labels span:last-child  { color: #4da6ff; }
 
 .dj-xfader {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
   height: 6px;
-  background: linear-gradient(to right, var(--red) 0%, var(--line2) 50%, var(--gold) 100%);
+  background: linear-gradient(to right, var(--red) 0%, var(--line2) 50%, #4da6ff 100%);
   border-radius: 3px;
   outline: none;
   cursor: pointer;

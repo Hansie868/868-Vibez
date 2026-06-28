@@ -136,6 +136,11 @@ async function commitImport(collectionName){
   V.currentLibFolder = null;
   document.querySelectorAll(".lib-tab").forEach(t=>t.classList.toggle("active",t.dataset.tab==="folders"));
   renderLibrary();
+
+  // Auto-play first track
+  const firstTrackId = folder.tracks[0];
+  const firstTrack   = V.library.find(x=>x.id===firstTrackId);
+  if(firstTrack) loadTrack(firstTrack, true);
 }
 
 // STATE SYNC
@@ -393,34 +398,39 @@ function renderRadio(){
   el.innerHTML=`<div class="radio-category">Music Stations</div>${music.map(renderItem).join("")}<div class="radio-category">Talk &amp; News</div>${talk.map(renderItem).join("")}`;
 }
 
-// CORS proxy for radio streams — required for browser playback
-function proxyStream(url){
-  if(!url)return "";
-  // Use allorigins proxy to bypass CORS on stream requests
-  return `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-}
-
+// RADIO STREAM PLAYER
 function toggleRadio(stationId){
   const s=STATIONS.find(x=>x.id===stationId);if(!s)return;
   if(V.activeRadioId===stationId){stopRadio();return;}
   if(!s.stream){showToast(`${s.name} — stream coming soon`);return;}
+
+  // Stop music player
   $("audio").pause();
+
   V.activeRadioId=stationId;
-  // Try direct first, fall back to proxy on error
-  V.radioPlayer.src=s.stream;
-  V.radioPlayer.load();
-  V.radioPlayer.play()
-    .then(()=>{showToast(`Now streaming: ${s.name}`);renderRadio();})
-    .catch(()=>{
-      // Try with CORS proxy
-      showToast(`Connecting to ${s.name}…`);
-      V.radioPlayer.src=proxyStream(s.stream);
-      V.radioPlayer.load();
-      V.radioPlayer.play()
-        .then(()=>{showToast(`Now streaming: ${s.name}`);renderRadio();})
-        .catch(()=>{showToast(`Could not connect to ${s.name}`);stopRadio();});
-    });
   renderRadio();
+
+  // Use a fresh Audio element each time to avoid state issues
+  V.radioPlayer.pause();
+  V.radioPlayer = new Audio();
+  V.radioPlayer.crossOrigin = null; // Don't set crossOrigin — breaks Zeno streams
+  V.radioPlayer.preload = "none";
+  V.radioPlayer.src = s.stream;
+
+  V.radioPlayer.onerror = () => {
+    showToast(`Could not connect to ${s.name}`);
+    stopRadio();
+  };
+
+  const playPromise = V.radioPlayer.play();
+  if(playPromise !== undefined){
+    playPromise
+      .then(()=>{ showToast(`Now streaming: ${s.name}`); renderRadio(); })
+      .catch(()=>{
+        showToast(`Could not connect to ${s.name}`);
+        stopRadio();
+      });
+  }
 }
 function stopRadio(){
   V.radioPlayer.pause();V.radioPlayer.src="";V.activeRadioId=null;renderRadio();
@@ -863,7 +873,7 @@ function showCreateModal(type,title,callback){
 
 function hideCreateModal(){
   $("createModal").classList.add("hidden");
-  _createCallback=null;
+  // Don't null the callback here — let the confirm handler do it
 }
 
 function showImportNameModal(count){
@@ -928,21 +938,28 @@ function bindEvents(){
   $("actionPanel").onclick=e=>{if(e.target===$("actionPanel"))$("actionPanel").classList.remove("open");};
 
   // Create modal
-  $("createModalCancel").onclick=()=>hideCreateModal();
+  $("createModalCancel").onclick=()=>{
+    _createCallback=null;
+    hideCreateModal();
+  };
   $("createModalConfirm").onclick=async()=>{
     const name=$("createModalInput").value.trim();
     if(!name){showToast("Please enter a name");return;}
+    const cb=_createCallback;
+    _createCallback=null;
     hideCreateModal();
-    if(_createCallback)await _createCallback(name);
+    if(cb)await cb(name);
   };
   $("createModalInput").onkeydown=async e=>{
     if(e.key==="Enter"){
       const name=$("createModalInput").value.trim();
       if(!name){showToast("Please enter a name");return;}
+      const cb=_createCallback;
+      _createCallback=null;
       hideCreateModal();
-      if(_createCallback)await _createCallback(name);
+      if(cb)await cb(name);
     }
-    if(e.key==="Escape")hideCreateModal();
+    if(e.key==="Escape"){_createCallback=null;hideCreateModal();}
   };
 
   document.querySelectorAll(".lib-tab").forEach(tab=>{
@@ -1229,7 +1246,7 @@ const DJE = window.DJEngine = (() => {
     const r  = cx - 2;
     const dpr = window.devicePixelRatio;
     const d  = state.decks[deckId];
-    const col = deckId === "A" ? "#c8102e" : "#d4a017";
+    const col = deckId === "A" ? "#c8102e" : "#4da6ff";
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
     ctx.strokeStyle = col; ctx.lineWidth = 2*dpr; ctx.stroke();
@@ -1283,7 +1300,7 @@ const DJE = window.DJEngine = (() => {
     const h = canvas.height = canvas.clientHeight * window.devicePixelRatio;
     if (w<=0||h<=0) return;
     const d = state.decks[deckId];
-    const col = deckId==="A" ? "#c8102e" : "#d4a017";
+    const col = deckId==="A" ? "#c8102e" : "#4da6ff";
     ctx.clearRect(0,0,w,h);
     ctx.strokeStyle=col; ctx.lineWidth=1.5*window.devicePixelRatio; ctx.beginPath();
     for(let x=0;x<w;x++){
@@ -1302,7 +1319,7 @@ const DJE = window.DJEngine = (() => {
   function openBrowser(deckId) {
     state.browserDeck=deckId; state.browserTab="folders"; state.browserFolder=null;
     $("djBrowserTitle").textContent=`Load to Deck ${deckId}`;
-    $("djBrowserTitle").style.color=deckId==="A"?"var(--red)":"var(--gold-hi)";
+    $("djBrowserTitle").style.color=deckId==="A"?"var(--red)":"#4da6ff";
     document.querySelectorAll(".dj-btab").forEach(t=>t.classList.toggle("active",t.dataset.btab==="folders"));
     renderBrowser();
     $("djBrowser").classList.add("open");
