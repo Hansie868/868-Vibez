@@ -54,7 +54,9 @@ const V = window.Vibez = {
   currentLibTab:"folders", currentLibFolder:null,
   currentPlaylist:null, currentCrate:null,
   playContext:"folder",
-  actionTrackId:null, actionType:null
+  actionTrackId:null, actionType:null,
+  // Repeat: "none" | "one" | "all"
+  repeatMode:"none"
 };
 
 const $     = id => document.getElementById(id);
@@ -81,48 +83,59 @@ function dismissSplash(){
   setTimeout(()=>{ $("splash").style.display="none"; },650);
 }
 
-// IMPORT — Fix #2 #8 #11
+// IMPORT — Named folder flow
+let _pendingImportFiles = null;
+
 async function importFiles(fileList){
   const files=[...fileList].filter(f=>f.type.startsWith("audio/")||/\.(mp3|m4a|aac|wav|ogg|opus|flac)$/i.test(f.name));
   if(!files.length){showToast("No audio files found");return;}
-  showToast(`Importing ${files.length} track${files.length>1?"s":""}…`);
 
-  const folderMap={};
+  // Store files and ask for a collection name
+  _pendingImportFiles = files;
+  showImportNameModal(files.length);
+}
+
+async function commitImport(collectionName){
+  const files = _pendingImportFiles;
+  _pendingImportFiles = null;
+  if(!files?.length) return;
+
+  const name    = collectionName.trim() || "My Music";
+  const folderId = makeFId(`user_${name}_${Date.now()}`);
+  const folder  = { id: folderId, name, path: name, tracks: [] };
+
+  showToast(`Importing ${files.length} track${files.length>1?"s":""} into "${name}"…`);
+
   for(const f of files){
-    const rawPath=f.webkitRelativePath||"";
-    const folderPath=rawPath.includes("/")?rawPath.substring(0,rawPath.lastIndexOf("/")):"Imported";
-    const folderId=makeFId(folderPath);
-    const folderName=folderPath.split("/").pop()||"Imported";
-    if(!folderMap[folderId])folderMap[folderId]={id:folderId,name:folderName,path:folderPath,tracks:[]};
-    const trackId=makeId(f);
-    const title=f.name.replace(/\.[^.]+$/,"");
+    const trackId = makeId(f);
+    const title   = f.name.replace(/\.[^.]+$/,"");
     await db.put("tracks",{id:trackId,name:f.name,type:f.type||"audio/mpeg",size:f.size,folderId,addedAt:Date.now(),blob:f});
     const ex=await db.get("metadata",trackId).catch(()=>null);
     if(!ex)await db.put("metadata",{trackId,title,artist:"",album:"",genre:"",year:""});
     await db.put("recent",{trackId,type:"added",timestamp:Date.now()});
-    folderMap[folderId].tracks.push(trackId);
+    folder.tracks.push(trackId);
   }
 
-  for(const[folderId,folder]of Object.entries(folderMap)){
-    const ex=await db.get("folders",folderId).catch(()=>null);
-    if(ex){
-      const merged=[...new Set([...ex.tracks,...folder.tracks])];
-      await db.put("folders",{...ex,tracks:merged});
-    }else{
-      await db.put("folders",folder);
-    }
+  // Check if folder name already exists — merge if so
+  const allFolders = await db.all("folders");
+  const existing   = allFolders.find(f => f.name === name);
+  if(existing){
+    const merged=[...new Set([...existing.tracks,...folder.tracks])];
+    await db.put("folders",{...existing,tracks:merged});
+    showToast(`Added to existing folder "${name}"`,4000);
+  } else {
+    await db.put("folders", folder);
+    showToast(`Folder "${name}" created with ${files.length} tracks`,4000);
   }
 
   await syncState();
-  const names=Object.values(folderMap).map(f=>f.name).join(", ");
-  showToast(`Imported: ${names}`,4000);
 
-  // Auto-play first track of first folder
-  const firstFolder=Object.values(folderMap)[0];
-  if(firstFolder?.tracks?.length){
-    const firstTrack=V.library.find(x=>x.id===firstFolder.tracks[0]);
-    if(firstTrack)loadTrack(firstTrack,true);
-  }
+  // Switch to Library Folders tab
+  showPage("library");
+  V.currentLibTab    = "folders";
+  V.currentLibFolder = null;
+  document.querySelectorAll(".lib-tab").forEach(t=>t.classList.toggle("active",t.dataset.tab==="folders"));
+  renderLibrary();
 }
 
 // STATE SYNC
@@ -137,6 +150,10 @@ async function syncState(){
   V.favorites=new Set(fav?.value||[]);
   V.playlists=await db.all("playlists");
   V.crates=await db.all("crates");
+  // Restore repeat mode
+  const repeat=await db.get("settings","repeat_mode").catch(()=>null);
+  if(repeat?.value)V.repeatMode=repeat.value;
+  updateRepeatUI();
   renderLibrary();
   renderQueue();
   const last=await db.get("settings","last_session").catch(()=>null);
@@ -228,14 +245,60 @@ function setupMediaSession(){
   try{navigator.mediaSession.setActionHandler("nexttrack",()=>nextTrack());}catch{}
 }
 
+// REPEAT MODE
+function cycleRepeat(){
+  const modes=["none","one","all"];
+  const next=modes[(modes.indexOf(V.repeatMode)+1)%modes.length];
+  V.repeatMode=next;
+  updateRepeatUI();
+  const labels={none:"Repeat",one:"Repeat 1",all:"Repeat All"};
+  showToast(labels[next]);
+  db.put("settings",{key:"repeat_mode",value:next}).catch(()=>{});
+}
+
+function updateRepeatUI(){
+  const btn=$("repeatBtn");
+  const label=$("repeatLabel");
+  const icon=$("repeatIcon");
+  if(!btn)return;
+  if(V.repeatMode==="none"){
+    btn.classList.remove("active");
+    label.textContent="Repeat";
+    icon.style.color="";
+  } else if(V.repeatMode==="one"){
+    btn.classList.add("active");
+    label.textContent="Repeat 1";
+    icon.style.color="var(--gold-hi)";
+  } else {
+    btn.classList.add("active");
+    label.textContent="Repeat All";
+    icon.style.color="var(--red)";
+  }
+}
+
 // FOLDER/PLAYLIST/CRATE NAVIGATION
 function nextTrack(){
   if(V.queue.length>0){playNextFromQueue();return;}
   if(!V.currentFolderTracks.length)return;
-  const next=(V.currentFolderIndex+1)%V.currentFolderTracks.length;
+
+  // Repeat one — restart current track
+  if(V.repeatMode==="one"){
+    const audio=$("audio");
+    audio.currentTime=0;
+    audio.play().catch(()=>{});
+    return;
+  }
+
+  const len=V.currentFolderTracks.length;
+  const next=(V.currentFolderIndex+1)%len;
+
+  // Repeat all — loop; if not repeat all and at end, stop
+  if(next===0 && V.repeatMode==="none") return;
+
   const track=V.library.find(x=>x.id===V.currentFolderTracks[next]);
   if(track)loadTrack(track,true,0,V.playContext==="playlist"?"playlist":V.playContext==="crate"?"crate":null);
 }
+
 function prevTrack(){
   if(!V.currentFolderTracks.length)return;
   const len=V.currentFolderTracks.length;
@@ -330,16 +393,33 @@ function renderRadio(){
   el.innerHTML=`<div class="radio-category">Music Stations</div>${music.map(renderItem).join("")}<div class="radio-category">Talk &amp; News</div>${talk.map(renderItem).join("")}`;
 }
 
+// CORS proxy for radio streams — required for browser playback
+function proxyStream(url){
+  if(!url)return "";
+  // Use allorigins proxy to bypass CORS on stream requests
+  return `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+}
+
 function toggleRadio(stationId){
   const s=STATIONS.find(x=>x.id===stationId);if(!s)return;
   if(V.activeRadioId===stationId){stopRadio();return;}
   if(!s.stream){showToast(`${s.name} — stream coming soon`);return;}
   $("audio").pause();
   V.activeRadioId=stationId;
+  // Try direct first, fall back to proxy on error
   V.radioPlayer.src=s.stream;
+  V.radioPlayer.load();
   V.radioPlayer.play()
     .then(()=>{showToast(`Now streaming: ${s.name}`);renderRadio();})
-    .catch(()=>{showToast(`Could not connect to ${s.name}`);stopRadio();});
+    .catch(()=>{
+      // Try with CORS proxy
+      showToast(`Connecting to ${s.name}…`);
+      V.radioPlayer.src=proxyStream(s.stream);
+      V.radioPlayer.load();
+      V.radioPlayer.play()
+        .then(()=>{showToast(`Now streaming: ${s.name}`);renderRadio();})
+        .catch(()=>{showToast(`Could not connect to ${s.name}`);stopRadio();});
+    });
   renderRadio();
 }
 function stopRadio(){
@@ -351,6 +431,21 @@ function showPage(name){
   document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===`page-${name}`));
   document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active",b.dataset.page===name));
   localStorage.setItem("vz_page",name);
+  // Hide nav bar in DJ landscape mode
+  updateNavVisibility();
+}
+
+function updateNavVisibility(){
+  const isDJ    = document.getElementById("page-dj").classList.contains("active");
+  const isLand  = window.innerWidth > window.innerHeight;
+  $("bottomNav").style.display = (isDJ && isLand) ? "none" : "";
+  // Adjust DJ page bottom
+  const djPage = $("page-dj");
+  if(isDJ && isLand){
+    djPage.style.bottom = "0";
+  } else {
+    djPage.style.bottom = "";
+  }
 }
 
 // LIBRARY RENDERERS — Fix #9
@@ -375,13 +470,17 @@ function renderFolderView(){
   }
   const sorted=[...folderList].sort((a,b)=>a.name.localeCompare(b.name));
   el.innerHTML=`<div class="folder-grid">${sorted.map(f=>`
-    <div class="folder-item" onclick="window.Vibez.openFolder('${f.id}')">
-      <div class="folder-icon">📁</div>
-      <div class="folder-info">
+    <div class="folder-item">
+      <div class="folder-icon" onclick="window.Vibez.openFolder('${f.id}')">📁</div>
+      <div class="folder-info" onclick="window.Vibez.openFolder('${f.id}')">
         <div class="folder-name">${esc(f.name)}</div>
         <div class="folder-count">${f.tracks.length} track${f.tracks.length!==1?"s":""}</div>
       </div>
-      <div class="folder-arrow">›</div>
+      <div class="folder-item-actions">
+        <button class="list-action-btn" onclick="window.Vibez.renameFolder('${f.id}')" title="Rename">✏️</button>
+        <button class="list-action-btn" onclick="window.Vibez.deleteFolder('${f.id}')" title="Delete">🗑️</button>
+        <div class="folder-arrow" onclick="window.Vibez.openFolder('${f.id}')">›</div>
+      </div>
     </div>`).join("")}</div>`;
 }
 
@@ -391,6 +490,7 @@ function renderFolderContents(folderId){
   if(!el||!folder)return;
   const tracks=folder.tracks.map(id=>V.library.find(x=>x.id===id)).filter(Boolean);
   const sorted=alphaSort(tracks);
+  // Fix #3: search works inside folders too
   const search=($("searchInput")?.value||"").toLowerCase().trim();
   const filtered=search?sorted.filter(t=>t.name.toLowerCase().includes(search)):sorted;
   el.innerHTML=`<div class="folder-back" onclick="window.Vibez.closeFolder()">‹ Back to Folders</div>`+
@@ -398,6 +498,7 @@ function renderFolderContents(folderId){
       ?`<div class="list-empty"><div class="list-empty-icon">🔍</div><p class="list-empty-title">No results</p></div>`
       :filtered.map(t=>{
         const title=esc(t.name.replace(/\.[^.]+$/,""));
+        // Fix #4: now playing indicator
         const current=V.currentTrack?.id===t.id;
         return`<div class="list-item${current?" playing":""}">
           <div class="list-item-art">${current?`<div class="playing-bar"><span></span><span></span><span></span></div>`:`<span class="list-item-note">🎵</span>`}</div>
@@ -405,8 +506,8 @@ function renderFolderContents(folderId){
           <div class="list-item-actions">
             <button class="list-action-btn primary" onclick="window.Vibez.playFromLibrary('${t.id}')">▶</button>
             <button class="list-action-btn" onclick="window.Vibez.addToQueue('${t.id}')">+Q</button>
-            <button class="list-action-btn" onclick="window.Vibez.showActionSheet('${t.id}','playlist')" title="Add to Playlist">🎶</button>
-            <button class="list-action-btn" onclick="window.Vibez.showActionSheet('${t.id}','crate')" title="Add to Crate">📦</button>
+            <button class="list-action-btn icon-only" onclick="window.Vibez.showActionSheet('${t.id}','playlist')" title="Add to Playlist">🎶</button>
+            <button class="list-action-btn icon-only" onclick="window.Vibez.showActionSheet('${t.id}','crate')" title="Add to Crate">📦</button>
           </div>
         </div>`;
       }).join(""));
@@ -446,6 +547,33 @@ async function renderSongsList(){
       </div>
     </div>`;
   }).join("");
+}
+
+async function renameFolder(folderId){
+  const folder=V.folders[folderId];if(!folder)return;
+  showCreateModal("rename",`Rename "${folder.name}"`, async newName=>{
+    folder.name=newName.trim()||folder.name;
+    await db.put("folders",folder);
+    V.folders[folderId]=folder;
+    showToast(`Renamed to "${folder.name}"`);
+    renderFolderView();
+  });
+  $("createModalInput").value=folder.name;
+  $("createModalConfirm").textContent="Rename";
+}
+
+async function deleteFolder(folderId){
+  const folder=V.folders[folderId];if(!folder)return;
+  // Delete all tracks in this folder
+  for(const trackId of folder.tracks){
+    await db.del("tracks",trackId);
+    await db.del("metadata",trackId);
+  }
+  await db.del("folders",folderId);
+  delete V.folders[folderId];
+  V.library=V.library.filter(t=>t.folderId!==folderId);
+  showToast(`Deleted "${folder.name}"`);
+  renderFolderView();
 }
 
 async function renderFavorites(){
@@ -725,7 +853,10 @@ let _createCallback=null;
 function showCreateModal(type,title,callback){
   _createCallback=callback;
   $("createModalTitle").textContent=title;
+  $("createModalSubtitle").textContent="";
+  $("createModalInput").placeholder="Enter name…";
   $("createModalInput").value="";
+  $("createModalConfirm").textContent="Create";
   $("createModal").classList.remove("hidden");
   setTimeout(()=>$("createModalInput").focus(),100);
 }
@@ -733,6 +864,20 @@ function showCreateModal(type,title,callback){
 function hideCreateModal(){
   $("createModal").classList.add("hidden");
   _createCallback=null;
+}
+
+function showImportNameModal(count){
+  $("createModalTitle").textContent=`Name this collection`;
+  $("createModalSubtitle").textContent=`${count} track${count>1?"s":""} selected`;
+  $("createModalInput").placeholder=`e.g. Bill, Soca 2024, Christmas…`;
+  $("createModalInput").value="";
+  $("createModalConfirm").textContent="Import";
+  _createCallback = async name => {
+    $("createModalConfirm").textContent="Create";
+    await commitImport(name);
+  };
+  $("createModal").classList.remove("hidden");
+  setTimeout(()=>$("createModalInput").focus(),100);
 }
 
 // EVENTS
@@ -776,6 +921,7 @@ function bindEvents(){
     updatePlayerUI();
     showToast(wasAdded?"Added to favorites":"Removed from favorites");
   };
+  $("repeatBtn").onclick=()=>cycleRepeat();
   $("queueBtn").onclick=()=>$("queuePanel").classList.add("open");
   document.querySelectorAll("[data-close]").forEach(btn=>{btn.onclick=()=>{const t=btn.dataset.close;if(t)$(t).classList.remove("open");};});
   $("queuePanel").onclick=e=>{if(e.target===$("queuePanel"))$("queuePanel").classList.remove("open");};
@@ -811,6 +957,10 @@ function bindEvents(){
   $("searchInput").oninput=()=>renderLibrary();
   $("splash").onclick=dismissSplash;
   setTimeout(dismissSplash,2800);
+
+  // Hide/show nav on orientation change for DJ page
+  window.addEventListener("orientationchange",()=>setTimeout(updateNavVisibility,300));
+  window.addEventListener("resize",()=>updateNavVisibility());
 }
 
 // GLOBAL API
@@ -819,6 +969,8 @@ Object.assign(window.Vibez,{
   addToQueue,removeFromQueue,toggleRadio,
   openFolder:id=>{V.currentLibFolder=id;renderLibrary();},
   closeFolder:()=>{V.currentLibFolder=null;renderLibrary();},
+  renameFolder,
+  deleteFolder,
 
   // Playlists
   createPlaylist,deletePlaylist,
@@ -886,7 +1038,11 @@ Object.assign(window.Vibez,{
     renderRadio();
     await syncState();
     showPage(localStorage.getItem("vz_page")||"player");
-    console.info("868 Vibez V2 — Phase 1 Update ✓");
+    // Service Worker registration
+    if("serviceWorker" in navigator){
+      navigator.serviceWorker.register("./sw.js").catch(()=>{});
+    }
+    console.info("868 Vibez V2 — Full Build ✓");
   }catch(err){
     console.error("868 Vibez init failed:",err);
   }
@@ -915,8 +1071,14 @@ const DJE = window.DJEngine = (() => {
   };
 
   const coverImg = new Image();
-  coverImg.src = "cover.png";
-  coverImg.onload = () => { state.coverImg = coverImg; };
+  coverImg.crossOrigin = "anonymous";
+  coverImg.src = "cover.png?" + Date.now(); // cache bust
+  coverImg.onload = () => {
+    state.coverImg = coverImg;
+    // Redraw platters once image loads
+    drawPlatter("A");
+    drawPlatter("B");
+  };
 
   function initAudio() {
     if (state.audioCtx) return;
@@ -1080,6 +1242,15 @@ const DJE = window.DJEngine = (() => {
       ctx.translate(cx,cy); ctx.rotate(d.platAngle);
       const iSize = r*1.44; ctx.drawImage(state.coverImg,-iSize/2,-iSize/2,iSize,iSize);
       ctx.restore();
+    }
+    // Progress ring
+    if (d.track && d.audio.duration > 0) {
+      const prog = d.audio.currentTime / d.audio.duration;
+      const sa   = -Math.PI / 2;
+      ctx.beginPath(); ctx.arc(cx,cy,r-3*dpr,0,Math.PI*2);
+      ctx.strokeStyle="rgba(255,255,255,0.07)"; ctx.lineWidth=3*dpr; ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx,cy,r-3*dpr,sa,sa+(prog*2*Math.PI));
+      ctx.strokeStyle=col; ctx.lineWidth=3*dpr; ctx.lineCap="round"; ctx.stroke();
     }
     ctx.beginPath(); ctx.arc(cx,cy,5*dpr,0,Math.PI*2); ctx.fillStyle=col; ctx.fill();
     ctx.save(); ctx.translate(cx,cy); ctx.rotate(d.platAngle);

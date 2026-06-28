@@ -1700,3 +1700,99 @@ html, body {
   color: var(--gold-hi);
   border-bottom-color: var(--gold-hi);
 }
+
+/* ============================================
+   DJ LANDSCAPE — Hide nav bar completely
+   ============================================ */
+@media (orientation: landscape) {
+  /* Hide bottom nav in landscape so DJ gets full screen */
+  #page-dj.active ~ #bottomNav,
+  body:has(#page-dj.active) #bottomNav {
+    display: none !important;
+  }
+
+  /* Give DJ page full height when nav is hidden */
+  #page-dj.active {
+    bottom: 0 !important;
+  }
+}
+
+/* ============================================
+   SONG ROW — Cleaner 2-button layout
+   Song actions: Play | +Q only on row
+   Playlist/Crate via long press handled separately
+   ============================================ */
+.list-item-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.list-item-actions .list-action-btn {
+  padding: 6px 10px;
+  font-size: 12px;
+  min-width: 36px;
+}
+
+/* Make 🎶 and 📦 smaller and icon-only */
+.list-action-btn.icon-only {
+  padding: 6px 7px;
+  font-size: 14px;
+  background: transparent;
+  border-color: var(--line2);
+}
+
+/* ============================================
+   IMPORT NAME MODAL — subtitle text
+   ============================================ */
+.create-modal-subtitle {
+  font-size: 12px;
+  color: var(--sub);
+  text-align: center;
+  margin-top: -8px;
+}
+
+/* ============================================
+   FOLDER ITEM ACTIONS — rename / delete
+   ============================================ */
+.folder-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.folder-item-actions .list-action-btn {
+  padding: 5px 7px;
+  font-size: 13px;
+  background: transparent;
+  border-color: var(--line2);
+}
+
+/* ============================================
+   REPEAT BUTTON ACTIVE STATES
+   ============================================ */
+.tool-btn.active {
+  color: var(--gold-hi);
+}
+
+/* ============================================
+   SW INSTALL BANNER (optional future use)
+   ============================================ */
+.install-banner {
+  display: none;
+  position: fixed;
+  bottom: calc(var(--nav-h) + 8px);
+  left: 12px; right: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line2);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--white);
+  z-index: 90;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
