@@ -29,11 +29,18 @@
           <span class="brand-label">868 LAB STUDIOS™</span>
           <span class="brand-name">868 Vibez</span>
         </div>
-        <button id="importBtn" class="btn-import">
-          <span class="import-icon">＋</span> Import
-        </button>
-        <!-- Fix #2: multiple + directory support -->
+        <div class="import-btn-group">
+          <button id="importBtn" class="btn-import">
+            <span class="import-icon">＋</span> Songs
+          </button>
+          <button id="importFolderBtn" class="btn-import btn-import-folder">
+            <span class="import-icon">📁</span> Folder
+          </button>
+        </div>
+        <!-- Songs picker -->
         <input id="fileInput" type="file" accept="audio/*" multiple hidden>
+        <!-- Folder picker -->
+        <input id="folderInput" type="file" accept="audio/*" webkitdirectory multiple hidden>
       </header>
 
       <div class="vinyl-stage">
@@ -106,10 +113,16 @@
           <span class="brand-name">Library</span>
         </div>
         <!-- Fix #8: Import button on Library page -->
-        <button id="libImportBtn" class="btn-import">
-          <span class="import-icon">＋</span> Import
-        </button>
+        <div class="import-btn-group">
+          <button id="libImportBtn" class="btn-import">
+            <span class="import-icon">＋</span> Songs
+          </button>
+          <button id="libImportFolderBtn" class="btn-import btn-import-folder">
+            <span class="import-icon">📁</span> Folder
+          </button>
+        </div>
         <input id="libFileInput" type="file" accept="audio/*" multiple hidden>
+        <input id="libFolderInput" type="file" accept="audio/*" webkitdirectory multiple hidden>
       </header>
       <div class="library-tabs">
         <button class="lib-tab active" data-tab="folders">Folders</button>

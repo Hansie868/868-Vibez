@@ -86,27 +86,41 @@ function dismissSplash(){
 // IMPORT — Named folder flow
 let _pendingImportFiles = null;
 
-async function importFiles(fileList){
+async function importFiles(fileList, sourceType="songs"){
   const files=[...fileList].filter(f=>f.type.startsWith("audio/")||/\.(mp3|m4a|aac|wav|ogg|opus|flac)$/i.test(f.name));
   if(!files.length){showToast("No audio files found");return;}
 
-  // Store files and ask for a collection name
-  _pendingImportFiles = files;
-  showImportNameModal(files.length);
+  // For folder imports, try to extract the real folder name from webkitRelativePath
+  let suggestedName = "";
+  if(sourceType === "folder"){
+    const firstPath = files[0]?.webkitRelativePath || "";
+    if(firstPath.includes("/")){
+      suggestedName = firstPath.split("/")[0]; // top-level folder name
+    }
+  }
+
+  _pendingImportFiles = { files, sourceType };
+  showImportNameModal(files.length, suggestedName);
 }
 
 async function commitImport(collectionName){
-  const files = _pendingImportFiles;
+  const pending = _pendingImportFiles;
   _pendingImportFiles = null;
-  if(!files?.length) return;
+  if(!pending?.files?.length) return;
 
-  const name    = collectionName.trim() || "My Music";
+  const { files } = pending;
+  const name     = collectionName.trim() || "My Music";
   const folderId = makeFId(`user_${name}_${Date.now()}`);
-  const folder  = { id: folderId, name, path: name, tracks: [] };
+  const folder   = { id: folderId, name, path: name, tracks: [] };
 
   showToast(`Importing ${files.length} track${files.length>1?"s":""} into "${name}"…`);
 
-  for(const f of files){
+  // Sort files alphabetically before storing
+  const sortedFiles = [...files].sort((a,b)=>
+    a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:"base"})
+  );
+
+  for(const f of sortedFiles){
     const trackId = makeId(f);
     const title   = f.name.replace(/\.[^.]+$/,"");
     await db.put("tracks",{id:trackId,name:f.name,type:f.type||"audio/mpeg",size:f.size,folderId,addedAt:Date.now(),blob:f});
@@ -116,31 +130,34 @@ async function commitImport(collectionName){
     folder.tracks.push(trackId);
   }
 
-  // Check if folder name already exists — merge if so
+  // Merge with existing folder of same name or create new
   const allFolders = await db.all("folders");
   const existing   = allFolders.find(f => f.name === name);
   if(existing){
     const merged=[...new Set([...existing.tracks,...folder.tracks])];
     await db.put("folders",{...existing,tracks:merged});
-    showToast(`Added to existing folder "${name}"`,4000);
   } else {
     await db.put("folders", folder);
-    showToast(`Folder "${name}" created with ${files.length} tracks`,4000);
   }
 
   await syncState();
 
-  // Switch to Library Folders tab
-  showPage("library");
-  V.currentLibTab    = "folders";
-  V.currentLibFolder = null;
-  document.querySelectorAll(".lib-tab").forEach(t=>t.classList.toggle("active",t.dataset.tab==="folders"));
-  renderLibrary();
+  // Clear existing queue then add ALL songs in order (skip first — it plays directly)
+  const existingQueue = await db.all("queue");
+  for(const item of existingQueue) await db.del("queue", item.id);
+  for(let i = 1; i < folder.tracks.length; i++){
+    await db.put("queue",{trackId: folder.tracks[i], position: i});
+  }
+  await syncState();
 
-  // Auto-play first track
-  const firstTrackId = folder.tracks[0];
-  const firstTrack   = V.library.find(x=>x.id===firstTrackId);
-  if(firstTrack) loadTrack(firstTrack, true);
+  showToast(`"${name}" — ${files.length} tracks queued up`,4000);
+
+  // Play first track immediately and go to player
+  const firstTrack = V.library.find(x=>x.id===folder.tracks[0]);
+  if(firstTrack){
+    showPage("player");
+    loadTrack(firstTrack, true, 0, null);
+  }
 }
 
 // STATE SYNC
@@ -876,18 +893,22 @@ function hideCreateModal(){
   // Don't null the callback here — let the confirm handler do it
 }
 
-function showImportNameModal(count){
+function showImportNameModal(count, suggestedName=""){
   $("createModalTitle").textContent=`Name this collection`;
   $("createModalSubtitle").textContent=`${count} track${count>1?"s":""} selected`;
   $("createModalInput").placeholder=`e.g. Bill, Soca 2024, Christmas…`;
-  $("createModalInput").value="";
+  $("createModalInput").value=suggestedName;
   $("createModalConfirm").textContent="Import";
   _createCallback = async name => {
     $("createModalConfirm").textContent="Create";
     await commitImport(name);
   };
   $("createModal").classList.remove("hidden");
-  setTimeout(()=>$("createModalInput").focus(),100);
+  setTimeout(()=>{
+    $("createModalInput").focus();
+    // Select all text so user can easily replace the suggested name
+    if(suggestedName) $("createModalInput").select();
+  },100);
 }
 
 // EVENTS
@@ -900,9 +921,13 @@ function bindEvents(){
     };
   });
   $("importBtn").onclick=()=>$("fileInput").click();
-  $("fileInput").onchange=e=>{importFiles(e.target.files);e.target.value="";};
+  $("fileInput").onchange=e=>{importFiles(e.target.files,"songs");e.target.value="";};
+  $("importFolderBtn").onclick=()=>$("folderInput").click();
+  $("folderInput").onchange=e=>{importFiles(e.target.files,"folder");e.target.value="";};
   $("libImportBtn").onclick=()=>$("libFileInput").click();
-  $("libFileInput").onchange=e=>{importFiles(e.target.files);e.target.value="";};
+  $("libFileInput").onchange=e=>{importFiles(e.target.files,"songs");e.target.value="";};
+  $("libImportFolderBtn").onclick=()=>$("libFolderInput").click();
+  $("libFolderInput").onchange=e=>{importFiles(e.target.files,"folder");e.target.value="";};
   $("playBtn").onclick=()=>{
     if(!V.currentTrack){if(V.library.length)loadTrack(alphaSort(V.library)[0],true);return;}
     audio.paused?audio.play().catch(()=>{}):audio.pause();
