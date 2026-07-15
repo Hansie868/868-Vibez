@@ -1,329 +1,442 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#000000">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/>
+  <meta name="theme-color" content="#060606"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="868 Vibez"/>
   <title>868 Vibez</title>
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"/>
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
+  <link rel="stylesheet" href="app.css"/>
+  <link rel="stylesheet" href="ui-upgrade.css"/>
 </head>
 <body>
 
-  <!-- SPLASH SCREEN -->
-  <div id="splash">
-    <img src="cover.png" alt="868 Vibez" id="splashCover">
-    <p id="splashSub">868 LAB STUDIOS™</p>
+<!-- ═══ SPLASH ═══ -->
+<div id="splash">
+  <canvas id="splashCanvas"></canvas>
+  <div class="splash-content">
+    <img src="icons/splash-cover.jpg" alt="868 Vibez — 868 Apps Hub Ltd" class="splash-cover-img"/>
+    <div class="splash-tap">Tap anywhere to enter</div>
+  </div>
+</div>
+
+<!-- Hidden Android-safe import inputs (webkitdirectory works on Android
+     Chrome even though showDirectoryPicker() does not) -->
+<input type="file" id="importFolderInput" webkitdirectory multiple accept="audio/*" style="display:none"/>
+<input type="file" id="importSongsInput"  multiple accept="audio/*" style="display:none"/>
+
+<div id="app">
+  <div class="pages">
+
+    <!-- ════ PAGE 1 — AUDIO PLAYER (first screen after splash) ════ -->
+    <div class="page active" id="page-player" data-page="player">
+      <div class="subtab-bar" style="padding-top:16px">
+        <button class="subtab active" data-sub="nowplaying">Now Playing</button>
+        <button class="subtab" data-sub="tracks">Tracks</button>
+        <button class="subtab" data-sub="eq">Audio Presets</button>
+      </div>
+
+      <!-- Now Playing -->
+      <div data-subview="nowplaying" class="now-playing-view active">
+
+        <!-- Vinyl / Artwork hero -->
+        <div class="np-art-wrap" id="npArtWrap">
+          <div class="np-art-wrap-inner">
+            <div class="np-vinyl">
+              <div class="np-vinyl-disc" id="npVinylDisc">
+                <img src="icons/vinyl-art.jpg" class="np-vinyl-art-img" alt=""/>
+                <div class="np-vinyl-art" id="npVinylArt" style="display:none">♪</div>
+                <div class="np-vinyl-hole"></div>
+              </div>
+              <div class="np-vinyl-arm" id="npArm"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Track info -->
+        <div class="np-info-panel">
+          <div class="np-title" id="npTitle">No track loaded</div>
+          <div class="np-artist" id="npArtist">Open My Library to begin</div>
+          <div class="np-meta-row">
+            <span class="np-tag hl" id="npBpm" style="display:none"></span>
+            <span class="np-tag hl" id="npKey" style="display:none"></span>
+            <span class="np-tag" id="npPosition" style="display:none;margin-left:auto"></span>
+          </div>
+        </div>
+
+        <!-- Seek bar -->
+        <div class="np-seek-wrap">
+          <input type="range" class="np-seek" id="npSeek" min="0" max="1000" value="0"/>
+          <div class="np-times">
+            <span id="npNow">0:00</span>
+            <span id="npDur">0:00</span>
+          </div>
+        </div>
+
+        <!-- Transport -->
+        <div class="np-controls">
+          <button class="np-ctrl shuffle" id="npShuffleBtn" title="Shuffle"></button>
+          <button class="np-ctrl" id="npPrevBtn" title="Previous">⏮</button>
+          <button class="np-play-btn" id="npPlayBtn">▶</button>
+          <button class="np-ctrl" id="npNextBtn" title="Next">⏭</button>
+          <button class="np-ctrl repeat" id="npRepeatBtn" title="Repeat"></button>
+        </div>
+
+        <!-- Action row -->
+        <div class="np-actions">
+          <button class="np-action-btn" id="npAddSongsBtn">
+            <span style="font-size:22px">🎵</span>
+            <span>Songs</span>
+          </button>
+          <button class="np-action-btn" id="npAddFolderBtn">
+            <span style="font-size:22px">📁</span>
+            <span>Folder</span>
+          </button>
+          <button class="np-action-btn" id="npFavBtn" onclick="toggleFavourite()">
+            <span style="font-size:22px" id="npFavIcon">♡</span>
+            <span>Favourite</span>
+          </button>
+          <button class="np-action-btn" onclick="showPage('dj')">
+            <span style="font-size:22px">🎛</span>
+            <span>DJ Deck</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tracks sub-view -->
+      <div data-subview="tracks" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+        <div style="padding:10px 16px">
+          <input class="vz-input" id="trackSearch" placeholder="Search title, artist, BPM, key…"/>
+        </div>
+        <div class="genre-rail" id="genreRail"></div>
+        <div id="trackList" class="track-list-view" style="flex:1;overflow-y:auto"></div>
+      </div>
+
+      <!-- EQ sub-view -->
+      <div data-subview="eq" class="eq-preset-view" style="display:none">
+        <div class="section-label">Presets</div>
+        <div class="eq-preset-row">
+          <button class="eq-preset-chip active" data-preset="Flat" onclick="applyEQPreset('Flat')">Flat</button>
+          <button class="eq-preset-chip" data-preset="Bass" onclick="applyEQPreset('Bass')">Bass Boost</button>
+          <button class="eq-preset-chip" data-preset="Treble" onclick="applyEQPreset('Treble')">Treble</button>
+          <button class="eq-preset-chip" data-preset="Vocal" onclick="applyEQPreset('Vocal')">Vocal</button>
+          <button class="eq-preset-chip" data-preset="Hip Hop" onclick="applyEQPreset('Hip Hop')">Hip Hop</button>
+          <button class="eq-preset-chip" data-preset="Pop" onclick="applyEQPreset('Pop')">Pop</button>
+          <button class="eq-preset-chip" data-preset="Rock" onclick="applyEQPreset('Rock')">Rock</button>
+          <button class="eq-preset-chip" data-preset="Classical" onclick="applyEQPreset('Classical')">Classical</button>
+        </div>
+        <div class="section-label">Crossfade</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+          <button class="eq-preset-chip" data-crossfade="0">Off</button>
+          <button class="eq-preset-chip" data-crossfade="5">5s</button>
+          <button class="eq-preset-chip" data-crossfade="10">10s</button>
+          <button class="eq-preset-chip" data-crossfade="15">15s</button>
+          <button class="eq-preset-chip" data-crossfade="20">20s</button>
+        </div>
+        <div class="section-label">Manual EQ — 5 Band</div>
+        <div class="eq-bands">
+          <div class="eq-band-col"><div class="eq-band-val">0</div><input type="range" class="eq-band-slider" min="-15" max="15" value="0" orient="vertical"/><div class="eq-band-freq">60Hz</div></div>
+          <div class="eq-band-col"><div class="eq-band-val">0</div><input type="range" class="eq-band-slider" min="-15" max="15" value="0" orient="vertical"/><div class="eq-band-freq">250Hz</div></div>
+          <div class="eq-band-col"><div class="eq-band-val">0</div><input type="range" class="eq-band-slider" min="-15" max="15" value="0" orient="vertical"/><div class="eq-band-freq">1kHz</div></div>
+          <div class="eq-band-col"><div class="eq-band-val">0</div><input type="range" class="eq-band-slider" min="-15" max="15" value="0" orient="vertical"/><div class="eq-band-freq">4kHz</div></div>
+          <div class="eq-band-col"><div class="eq-band-val">0</div><input type="range" class="eq-band-slider" min="-15" max="15" value="0" orient="vertical"/><div class="eq-band-freq">12kHz</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ PAGE — STREAM / RADIO ════ -->
+    <div class="page" id="page-stream" data-page="stream">
+      <div class="radio-hero">
+        <div class="radio-hero-kicker">TRINIDAD &amp; TOBAGO</div>
+        <div class="radio-hero-title">Radio Hub</div>
+      </div>
+      <div class="radio-scroll" id="radioScroll">
+        <div class="section-label">🇹🇹 Music Stations<span id="ttCount" class="section-count"></span></div>
+        <div id="radioTTList" class="radio-list"></div>
+        <div class="section-label">🌎 World Radio</div>
+        <div id="radioWorldList" class="radio-list"></div>
+      </div>
+    </div>
+
+    <!-- ════ PAGE 4 — LIBRARY ════ -->
+    <div class="page" id="page-library" data-page="library">
+      <div class="lib-topbar">
+        <div class="lib-search-wrap">
+          <span class="lib-search-icon">🔍</span>
+          <input class="vz-input lib-search" id="libSearch" placeholder="Search library…"/>
+        </div>
+        <button id="libAddSongs" class="vz-btn primary sm">🎵 Songs</button>
+        <button id="libOpenFolder" class="vz-btn sm">📁 Folder</button>
+        <button id="healthScanBtn" class="vz-btn sm">🔬 Health</button>
+        <button id="settingsBtn" class="vz-btn sm" title="Settings">⚙️</button>
+      </div>
+      <div class="subtab-bar">
+        <button class="subtab active" data-sub="songs">Songs</button>
+        <button class="subtab" data-sub="folders">Folders</button>
+        <button class="subtab" data-sub="playlists">Playlists</button>
+      </div>
+      <div class="lib-content">
+        <div data-subview="songs" data-show-as="block" id="libTrackList" style="display:block"></div>
+        <div id="healthReport" style="padding:0 16px 80px;display:none"></div>
+        <div data-subview="folders" data-show-as="block" id="folderView" style="display:none"></div>
+        <div data-subview="playlists" data-show-as="block" id="playlistView" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- ════ PAGE 5 — DJ CONSOLE ════ -->
+    <div class="page dj-page" id="page-dj" data-page="dj">
+      <!-- Portrait hint -->
+      <div class="dj-landscape-hint">
+        <div class="dlh-icon">📱</div>
+        <h3 style="font-size:18px;margin-bottom:8px">Rotate to Landscape</h3>
+        <p style="color:var(--t3);font-size:13px">The DJ console works best in landscape mode. Rotate your device to access the full mixer.</p>
+      </div>
+
+      <!-- Landscape content -->
+      <div class="dj-content">
+        <div class="dj-subtabs">
+          <button class="dj-stab active" data-djsub="decks">Twin Decks</button>
+          <button class="dj-stab" data-djsub="fx">FX Pad</button>
+          <button class="dj-stab" data-djsub="eq">Graphic EQ</button>
+        </div>
+
+        <!-- Shared full-width waveform strip (matches reference: one continuous
+             strip showing both decks, not two small separate waveforms) -->
+        <div class="dj-wave-strip" id="djWaveStrip">
+          <canvas id="waveA" class="dj-wave-canvas wave-a"></canvas>
+          <canvas id="waveB" class="dj-wave-canvas wave-b"></canvas>
+        </div>
+
+        <!-- Twin Decks -->
+        <div class="twin-decks active" id="twinDecksView">
+
+          <!-- Deck A -->
+          <div class="dj-deck">
+            <div class="dd-header">
+              <span class="dd-badge a">A</span>
+              <div class="dd-track" id="djATrack">No track loaded</div>
+              <span class="dd-bpm" id="djABpm"></span>
+              <span id="djAHarm" style="display:none;font-size:9px;border-radius:4px;padding:1px 5px;border:1px solid;margin-left:4px"></span>
+            </div>
+            <div class="dd-platter" id="platterAWrap">
+              <div class="dd-platter-art" id="djPlatterArtA"><img src="icons/vinyl-art.jpg" alt=""/></div>
+              <canvas id="platterA"></canvas>
+              <div class="dd-bpm-display">
+                <div class="dd-bpm-num" id="djABpmNum">—</div>
+                <div class="dd-bpm-lbl">BPM</div>
+              </div>
+              <!-- Hot cue pad grid overlay -->
+              <div class="dd-pad-grid" id="djAPadGrid"></div>
+            </div>
+
+            <div class="dd-transport" id="djATransport">
+              <button id="djALoad" class="dd-btn">LOAD</button>
+              <button id="djACue"  class="dd-btn">CUE</button>
+              <button id="djASync" class="dd-btn">SYNC</button>
+              <button id="djAPlay" class="dd-btn dd-play a-play">▶</button>
+            </div>
+            <div class="dd-pitch">
+              <span class="dd-pitch-lbl">PITCH</span>
+              <input type="range" id="pitchA" min="-12" max="12" step="0.1" value="0" style="flex:1">
+              <span class="dd-pitch-val" id="pitchAVal">0.0</span>
+            </div>
+            <button id="djAPadToggle" class="dd-btn" style="margin-top:3px;font-size:9px">⬛ Pads</button>
+          </div>
+
+          <!-- Mixer -->
+          <div class="dj-mixer">
+            <div class="dm-label">MIXER</div>
+            <div class="dm-meters">
+              <div class="dm-meter-track"><div class="dm-meter-fill" id="meterL"></div></div>
+              <div class="dm-meter-track"><div class="dm-meter-fill" id="meterR"></div></div>
+            </div>
+            <div class="dm-faders">
+              <div class="dm-fader-col"><div class="dm-fader-lbl">A</div><input id="djFaderA" type="range" min="0" max="1" step="0.01" value="1" class="dm-fader"></div>
+              <div class="dm-fader-col"><div class="dm-fader-lbl">M</div><input id="djMaster" type="range" min="0" max="1.5" step="0.01" value="1" class="dm-fader"></div>
+              <div class="dm-fader-col"><div class="dm-fader-lbl">B</div><input id="djFaderB" type="range" min="0" max="1" step="0.01" value="1" class="dm-fader"></div>
+            </div>
+            <div class="dm-xfade">
+              <div class="dm-xfade-labels"><span>A</span><span>B</span></div>
+              <input id="djXfader" type="range" min="0" max="1" step="0.001" value="0.5" class="dm-xfader"/>
+            </div>
+            <div class="dm-limiter" id="limiterStatus">🔴 Limiter: standby</div>
+            <button id="harmonicToggle" class="dd-btn" style="margin-top:4px;font-size:9px;width:100%">⚡ Harmonic</button>
+          </div>
+
+          <!-- Deck B -->
+          <div class="dj-deck">
+            <div class="dd-header">
+              <span class="dd-badge b">B</span>
+              <div class="dd-track" id="djBTrack">No track loaded</div>
+              <span class="dd-bpm" id="djBBpm"></span>
+              <span id="djBHarm" style="display:none;font-size:9px;border-radius:4px;padding:1px 5px;border:1px solid;margin-left:4px"></span>
+            </div>
+            <div class="dd-platter">
+              <div class="dd-platter-art" id="djPlatterArtB"><img src="icons/vinyl-art.jpg" alt=""/></div>
+              <canvas id="platterB"></canvas>
+              <div class="dd-bpm-display">
+                <div class="dd-bpm-num" id="djBBpmNum">—</div>
+                <div class="dd-bpm-lbl">BPM</div>
+              </div>
+              <div class="dd-pad-grid" id="djBPadGrid"></div>
+            </div>
+
+            <div class="dd-transport" id="djBTransport">
+              <button id="djBLoad" class="dd-btn">LOAD</button>
+              <button id="djBCue"  class="dd-btn">CUE</button>
+              <button id="djBSync" class="dd-btn">SYNC</button>
+              <button id="djBPlay" class="dd-btn dd-play b-play">▶</button>
+            </div>
+            <div class="dd-pitch">
+              <span class="dd-pitch-lbl">PITCH</span>
+              <input type="range" id="pitchB" min="-12" max="12" step="0.1" value="0" style="flex:1">
+              <span class="dd-pitch-val" id="pitchBVal">0.0</span>
+            </div>
+            <button id="djBPadToggle" class="dd-btn" style="margin-top:3px;font-size:9px">⬛ Pads</button>
+          </div>
+        </div>
+
+        <!-- FX Pad -->
+        <div class="fx-pad-view" id="fxPadView">
+          <div class="fx-selector">
+            <button class="fx-chip active" data-fx="delay">Echo / Delay</button>
+            <button class="fx-chip" data-fx="reverb">Reverb</button>
+            <button class="fx-chip" data-fx="filter">Filter</button>
+            <button class="fx-chip" data-fx="flanger">Flanger</button>
+          </div>
+          <div class="fx-xy-pad" id="fxXYPad" style="flex:1;min-height:140px">
+            <div class="fx-xy-grid"></div>
+            <div class="fx-xy-dot" id="fxDot" style="left:50%;top:50%"></div>
+            <div class="fx-xy-labels">
+              <span class="fx-xy-label">INTENSITY →</span>
+              <span class="fx-xy-label">↓ RATE</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Graphic EQ -->
+        <div class="geq-view" id="geqView">
+          <div class="geq-presets">
+            <button class="geq-preset-btn active" data-preset="Flat"      onclick="applyEQPreset('Flat')">Flat</button>
+            <button class="geq-preset-btn" data-preset="Bass"             onclick="applyEQPreset('Bass')">Bass</button>
+            <button class="geq-preset-btn" data-preset="Hip Hop"          onclick="applyEQPreset('Hip Hop')">Hip Hop</button>
+            <button class="geq-preset-btn" data-preset="Pop"              onclick="applyEQPreset('Pop')">Pop</button>
+            <button class="geq-preset-btn" data-preset="Rock"             onclick="applyEQPreset('Rock')">Rock</button>
+            <button class="geq-preset-btn" data-preset="Classical"        onclick="applyEQPreset('Classical')">Classical</button>
+          </div>
+          <div class="geq-bands-wrap">
+            <div class="geq-band"><div class="geq-val">0</div><input type="range" class="geq-slider" min="-15" max="15" value="0" orient="vertical"/><div class="geq-freq">60Hz</div></div>
+            <div class="geq-band"><div class="geq-val">0</div><input type="range" class="geq-slider" min="-15" max="15" value="0" orient="vertical"/><div class="geq-freq">250Hz</div></div>
+            <div class="geq-band"><div class="geq-val">0</div><input type="range" class="geq-slider" min="-15" max="15" value="0" orient="vertical"/><div class="geq-freq">1kHz</div></div>
+            <div class="geq-band"><div class="geq-val">0</div><input type="range" class="geq-slider" min="-15" max="15" value="0" orient="vertical"/><div class="geq-freq">4kHz</div></div>
+            <div class="geq-band"><div class="geq-val">0</div><input type="range" class="geq-slider" min="-15" max="15" value="0" orient="vertical"/><div class="geq-freq">12kHz</div></div>
+          </div>
+        </div>
+
+      </div><!-- /dj-content -->
+    </div><!-- /dj-page -->
+
+  </div><!-- /pages -->
+
+  <!-- ════ BOTTOM NAV ════ -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-page="player">
+      <span class="ni-icon">🎵</span>
+      <span class="ni-label">Player</span>
+    </button>
+    <button class="nav-item" data-page="stream">
+      <span class="ni-icon">📻</span>
+      <span class="ni-label">Stream</span>
+    </button>
+    <button class="nav-item" data-page="library">
+      <span class="ni-icon">📁</span>
+      <span class="ni-label">Library</span>
+    </button>
+    <button class="nav-item" data-page="dj">
+      <span class="ni-icon">🎧</span>
+      <span class="ni-label">DJ</span>
+    </button>
+  </nav>
+
+  <!-- ════ EXTRACTED SHEET ════ -->
+  <div class="extracted-sheet" id="extractedSheet">
+    <div class="es-head">
+      <div>
+        <h3 style="font-size:15px">Media Links</h3>
+        <p id="extractedCount" style="font-size:11px;color:var(--t3);margin-top:2px"></p>
+      </div>
+      <button id="extractedClose" class="vz-btn sm">✕ Close</button>
+    </div>
+    <div id="extractedList" class="es-list"></div>
   </div>
 
-  <!-- APP SHELL -->
-  <div id="app" class="hidden">
-
-    <!-- PAGE: PLAYER -->
-    <section id="page-player" class="page active">
-      <header class="page-header">
-        <div class="header-brand">
-          <span class="brand-label">868 LAB STUDIOS™</span>
-          <span class="brand-name">868 Vibez</span>
-        </div>
-        <div class="import-btn-group">
-          <button id="importBtn" class="btn-import">
-            <span class="import-icon">＋</span> Songs
-          </button>
-          <button id="importFolderBtn" class="btn-import btn-import-folder">
-            <span class="import-icon">📁</span> Folder
-          </button>
-        </div>
-        <!-- Songs picker -->
-        <input id="fileInput" type="file" accept="audio/*" multiple hidden>
-        <!-- Folder picker -->
-        <input id="folderInput" type="file" accept="audio/*" webkitdirectory multiple hidden>
-      </header>
-
-      <div class="vinyl-stage">
-        <div class="vinyl-ring">
-          <div id="vinyl" class="vinyl-disc">
-            <img src="cover.png" alt="" class="vinyl-art">
-            <div class="vinyl-center-dot"></div>
-          </div>
-        </div>
-        <div class="track-info">
-          <h2 id="songTitle" class="track-title">No track loaded</h2>
-          <!-- Fix #1: artist only shown when available -->
-          <p id="artistName" class="track-artist hidden"></p>
-        </div>
+  <!-- ════ SAVE SHEET ════ -->
+  <div class="save-sheet" id="saveSheet">
+    <div class="save-card">
+      <h3>💾 Save to My Library</h3>
+      <div class="save-fields">
+        <input class="vz-input" id="saveArtistIn" placeholder="Artist Name"/>
+        <input class="vz-input" id="saveAlbumIn"  placeholder="Album Name"/>
+        <input class="vz-input" id="saveTitleIn"  placeholder="Track Title"/>
+        <select class="vz-input" id="saveGenreIn">
+          <option value="">— Genre —</option>
+          <option>Soca</option><option>Dancehall</option><option>Hip Hop</option>
+          <option>Afrobeats</option><option>Reggaeton</option><option>Pop</option>
+          <option>House</option><option>R&B</option><option>Slows</option>
+          <option>Indian</option><option>Latin</option><option>Other</option>
+        </select>
       </div>
-
-      <div class="player-panel">
-        <div class="seek-wrap">
-          <input id="seek" type="range" min="0" max="1000" value="0" class="seek-bar">
-          <div class="time-row">
-            <span id="curTime" class="time-label">0:00</span>
-            <span id="durTime" class="time-label">0:00</span>
-          </div>
-        </div>
-        <div class="transport">
-          <button id="prevBtn" class="transport-btn">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
-          </button>
-          <button id="playBtn" class="transport-btn play-btn">
-            <svg id="iconPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            <svg id="iconPause" viewBox="0 0 24 24" fill="currentColor" class="hidden"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-          </button>
-          <button id="nextBtn" class="transport-btn">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zm2-8.14 5.23 3.64L8 17.14V9.86zM16 6h2v12h-2z"/></svg>
-          </button>
-        </div>
-        <div class="tool-row">
-          <button id="queueBtn" class="tool-btn">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
-            <span>Queue</span>
-          </button>
-          <button id="repeatBtn" class="tool-btn">
-            <svg id="repeatIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
-            <span id="repeatLabel">Repeat</span>
-          </button>
-          <button id="favBtn" class="tool-btn">
-            <svg id="heartIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-            <span>Favorite</span>
-          </button>
-        </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button id="saveConfirm" class="vz-btn primary" style="flex:1">📁 Save to Device</button>
+        <button id="saveCancel"  class="vz-btn" style="flex:1">Cancel</button>
       </div>
-    </section>
-
-    <!-- PAGE: RADIO -->
-    <section id="page-radio" class="page">
-      <header class="page-header">
-        <div class="header-brand">
-          <span class="brand-label">TRINIDAD & TOBAGO</span>
-          <span class="brand-name">Radio Hub</span>
-        </div>
-      </header>
-      <div id="radioList" class="list-container"></div>
-    </section>
-
-    <!-- PAGE: LIBRARY -->
-    <section id="page-library" class="page">
-      <header class="page-header">
-        <div class="header-brand">
-          <span class="brand-label">LOCAL STORE</span>
-          <span class="brand-name">Library</span>
-        </div>
-        <!-- Fix #8: Import button on Library page -->
-        <div class="import-btn-group">
-          <button id="libImportBtn" class="btn-import">
-            <span class="import-icon">＋</span> Songs
-          </button>
-          <button id="libImportFolderBtn" class="btn-import btn-import-folder">
-            <span class="import-icon">📁</span> Folder
-          </button>
-        </div>
-        <input id="libFileInput" type="file" accept="audio/*" multiple hidden>
-        <input id="libFolderInput" type="file" accept="audio/*" webkitdirectory multiple hidden>
-      </header>
-      <div class="library-tabs">
-        <button class="lib-tab active" data-tab="folders">Folders</button>
-        <button class="lib-tab" data-tab="songs">Songs</button>
-        <button class="lib-tab" data-tab="playlists">Playlists</button>
-        <button class="lib-tab" data-tab="crates">Crates</button>
-        <button class="lib-tab" data-tab="favorites">Favorites</button>
-        <button class="lib-tab" data-tab="recent">Recent</button>
-      </div>
-      <input id="searchInput" class="search-bar" placeholder="Search tracks or artists…">
-      <div id="libraryList" class="list-container"></div>
-    </section>
-
-    <!-- PAGE: DJ CONSOLE -->
-    <section id="page-dj" class="page">
-
-      <!-- Portrait message -->
-      <div id="djPortraitMsg" class="dj-portrait-msg">
-        <div class="rotate-icon">📱</div>
-        <p>Turn your phone sideways<br>to enter DJ mode</p>
-      </div>
-
-      <!-- Full DJ Console — landscape only -->
-      <div id="djConsole" class="dj-console">
-
-        <!-- DECK A -->
-        <div class="dj-deck dj-deck-a">
-          <div class="dj-deck-title" id="deckATitle">Load a track</div>
-          <div class="dj-platter-wrap">
-            <canvas id="platA" class="dj-platter"></canvas>
-          </div>
-          <canvas id="waveA" class="dj-wave"></canvas>
-          <div class="dj-deck-controls">
-            <button class="dj-btn dj-play" id="playA" onclick="window.DJEngine.play('A')">▶</button>
-            <button class="dj-btn dj-cue"  id="cueA"  onclick="window.DJEngine.cue('A')">CUE</button>
-          </div>
-          <div class="dj-slider-row">
-            <div class="dj-slider-group">
-              <label class="dj-slider-label">PITCH</label>
-              <input id="pitchA" type="range" class="dj-slider dj-slider-v" min="-8" max="8" step="0.1" value="0" oninput="window.DJEngine.setPitch('A',this.value)">
-              <span id="pitchAVal" class="dj-slider-val">0%</span>
-            </div>
-            <div class="dj-slider-group">
-              <label class="dj-slider-label">VOL</label>
-              <input id="volA" type="range" class="dj-slider dj-slider-v" min="0" max="1" step="0.01" value="1" oninput="window.DJEngine.setVol('A',this.value)">
-            </div>
-          </div>
-          <div class="dj-time-row">
-            <span id="timeA" class="dj-time">0:00</span>
-            <span id="durA"  class="dj-time dj-time-dur">0:00</span>
-          </div>
-        </div>
-
-        <!-- MIXER -->
-        <div class="dj-mixer">
-          <!-- Load buttons -->
-          <div class="dj-load-row">
-            <button class="dj-btn dj-load dj-load-a" onclick="window.DJEngine.openBrowser('A')">LOAD A</button>
-            <button class="dj-btn dj-load dj-load-b" onclick="window.DJEngine.openBrowser('B')">LOAD B</button>
-          </div>
-
-          <!-- 3-Band EQ -->
-          <div class="dj-eq">
-            <div class="dj-eq-band">
-              <label class="dj-eq-label">HI</label>
-              <input id="eqHiA"  type="range" class="dj-eq-knob" min="0" max="2" step="0.01" value="1" oninput="window.DJEngine.setEQ('A','hi',this.value)">
-              <input id="eqHiB"  type="range" class="dj-eq-knob" min="0" max="2" step="0.01" value="1" oninput="window.DJEngine.setEQ('B','hi',this.value)">
-            </div>
-            <div class="dj-eq-band">
-              <label class="dj-eq-label">MID</label>
-              <input id="eqMidA" type="range" class="dj-eq-knob" min="0" max="2" step="0.01" value="1" oninput="window.DJEngine.setEQ('A','mid',this.value)">
-              <input id="eqMidB" type="range" class="dj-eq-knob" min="0" max="2" step="0.01" value="1" oninput="window.DJEngine.setEQ('B','mid',this.value)">
-            </div>
-            <div class="dj-eq-band">
-              <label class="dj-eq-label">LOW</label>
-              <input id="eqLoA"  type="range" class="dj-eq-knob" min="0" max="2" step="0.01" value="1" oninput="window.DJEngine.setEQ('A','lo',this.value)">
-              <input id="eqLoB"  type="range" class="dj-eq-knob" min="0" max="2" step="0.01" value="1" oninput="window.DJEngine.setEQ('B','lo',this.value)">
-            </div>
-          </div>
-
-          <!-- Crossfader -->
-          <div class="dj-xfader-wrap">
-            <div class="dj-xfader-labels"><span>A</span><span>B</span></div>
-            <input id="crossfader" type="range" class="dj-xfader" min="0" max="1" step="0.001" value="0.5" oninput="window.DJEngine.setCrossfader(this.value)">
-          </div>
-
-          <!-- Hot Cues -->
-          <div class="dj-hotcues">
-            <button class="dj-hotcue" id="hc0" onclick="window.DJEngine.hotCue(0)">1</button>
-            <button class="dj-hotcue" id="hc1" onclick="window.DJEngine.hotCue(1)">2</button>
-            <button class="dj-hotcue" id="hc2" onclick="window.DJEngine.hotCue(2)">3</button>
-            <button class="dj-hotcue" id="hc3" onclick="window.DJEngine.hotCue(3)">4</button>
-          </div>
-
-          <!-- Loop controls -->
-          <div class="dj-loop-row">
-            <button class="dj-btn dj-loop-btn" id="loopInBtn"  onclick="window.DJEngine.loopIn()">IN</button>
-            <button class="dj-btn dj-loop-btn dj-loop-toggle" id="loopToggle" onclick="window.DJEngine.loopToggle()">LOOP</button>
-            <button class="dj-btn dj-loop-btn" id="loopOutBtn" onclick="window.DJEngine.loopOut()">OUT</button>
-          </div>
-        </div>
-
-        <!-- DECK B -->
-        <div class="dj-deck dj-deck-b">
-          <div class="dj-deck-title" id="deckBTitle">Load a track</div>
-          <div class="dj-platter-wrap">
-            <canvas id="platB" class="dj-platter"></canvas>
-          </div>
-          <canvas id="waveB" class="dj-wave"></canvas>
-          <div class="dj-deck-controls">
-            <button class="dj-btn dj-play" id="playB" onclick="window.DJEngine.play('B')">▶</button>
-            <button class="dj-btn dj-cue"  id="cueB"  onclick="window.DJEngine.cue('B')">CUE</button>
-          </div>
-          <div class="dj-slider-row">
-            <div class="dj-slider-group">
-              <label class="dj-slider-label">PITCH</label>
-              <input id="pitchB" type="range" class="dj-slider dj-slider-v" min="-8" max="8" step="0.1" value="0" oninput="window.DJEngine.setPitch('B',this.value)">
-              <span id="pitchBVal" class="dj-slider-val">0%</span>
-            </div>
-            <div class="dj-slider-group">
-              <label class="dj-slider-label">VOL</label>
-              <input id="volB" type="range" class="dj-slider dj-slider-v" min="0" max="1" step="0.01" value="1" oninput="window.DJEngine.setVol('B',this.value)">
-            </div>
-          </div>
-          <div class="dj-time-row">
-            <span id="timeB" class="dj-time">0:00</span>
-            <span id="durB"  class="dj-time dj-time-dur">0:00</span>
-          </div>
-        </div>
-
-      </div><!-- /djConsole -->
-    </section>
-
-    <!-- BOTTOM NAV -->
-    <nav id="bottomNav">
-      <button class="nav-btn active" data-page="player"><span class="nav-icon">🎵</span></button>
-      <button class="nav-btn" data-page="radio"><span class="nav-icon">📻</span></button>
-      <button class="nav-btn" data-page="library"><span class="nav-icon">📁</span></button>
-      <button class="nav-btn" data-page="dj"><span class="nav-icon">🔊</span></button>
-    </nav>
-
-  </div>
-
-  <!-- QUEUE PANEL -->
-  <div id="queuePanel" class="panel-overlay">
-    <div class="panel-sheet">
-      <div class="panel-handle"></div>
-      <div class="panel-head">
-        <h3 class="panel-title">Up Next</h3>
-        <button class="panel-close" data-close="queuePanel">✕</button>
-      </div>
-      <div id="queueList" class="list-container"></div>
     </div>
   </div>
 
-  <!-- DJ TRACK BROWSER -->
-  <div id="djBrowser" class="dj-browser-overlay">
-    <div class="dj-browser-sheet">
-      <div class="panel-handle"></div>
-      <div class="panel-head">
-        <h3 class="panel-title" id="djBrowserTitle">Load to Deck A</h3>
-        <button class="panel-close" onclick="window.DJEngine.closeBrowser()">✕</button>
-      </div>
-      <div class="dj-browser-tabs">
-        <button class="dj-btab active" data-btab="folders">Folders</button>
-        <button class="dj-btab" data-btab="playlists">Playlists</button>
-        <button class="dj-btab" data-btab="crates">Crates</button>
-      </div>
-      <div id="djBrowserList" class="list-container"></div>
-    </div>
-  </div>
+</div><!-- /app -->
 
-  <!-- TOAST NOTIFICATION -->
-  <div id="toast" class="toast"></div>
+<!-- Hidden audio elements -->
+<audio id="audioA"></audio>
+<audio id="audioB"></audio>
+<audio id="mainAudio"></audio>
 
-  <!-- SONG ACTION SHEET — Add to Playlist / Crate -->
-  <div id="actionPanel" class="panel-overlay">
-    <div class="panel-sheet">
-      <div class="panel-handle"></div>
-      <div class="panel-head">
-        <h3 class="panel-title" id="actionPanelTitle">Add to…</h3>
-        <button class="panel-close" data-close="actionPanel">✕</button>
-      </div>
-      <div id="actionList" class="list-container"></div>
-    </div>
-  </div>
-
-  <!-- CREATE PLAYLIST / CRATE / IMPORT NAMING MODAL -->
-  <div id="createModal" class="create-modal hidden">
-    <div class="create-modal-card">
-      <h3 id="createModalTitle">New Playlist</h3>
-      <p id="createModalSubtitle" class="create-modal-subtitle"></p>
-      <input id="createModalInput" class="create-modal-input" type="text" placeholder="Enter name…" maxlength="40">
-      <div class="create-modal-actions">
-        <button id="createModalCancel" class="create-modal-btn cancel">Cancel</button>
-        <button id="createModalConfirm" class="create-modal-btn confirm">Create</button>
-      </div>
-    </div>
-  </div>
-
-  <audio id="audio"></audio>
-  <script src="app.js"></script>
+<script defer src="engine.js"></script>
+<script defer src="phase16.js"></script>
+<script defer src="phase1.js"></script>
+<script defer src="phase2.js"></script>
+<script defer src="phase3.js"></script>
+<script defer src="phase4.js"></script>
+<script defer src="phase5.js"></script>
+<script defer src="phase6.js"></script>
+<script defer src="phase7.js"></script>
+<script defer src="phase8.js"></script>
+<script defer src="phase9.js"></script>
+<script defer src="phase10.js"></script>
+<script defer src="phase11.js"></script>
+<script defer src="phase12.js"></script>
+<script defer src="phase13.js"></script>
+<script defer src="phase14.js"></script>
+<script defer src="phase15.js"></script>
+<script defer src="phase17.js"></script>
+<script defer src="ui-upgrade.js"></script>
+<script defer src="app-ui.js"></script>
+<script defer src="phase18.js"></script>
+<script defer src="phase19.js"></script>
+<script defer src="phase20.js"></script>
+<script defer src="phase21.js"></script>
+<script defer src="phase22.js"></script>
+<script defer src="phase23.js"></script>
+<script defer src="phase24.js"></script>
+<script defer src="phase25.js"></script>
+<script defer src="phase26.js"></script>
+<script>
+  if('serviceWorker' in navigator)
+    window.addEventListener('load', ()=>navigator.serviceWorker.register('./sw.js').catch(console.warn));
+</script>
 </body>
 </html>

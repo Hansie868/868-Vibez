@@ -1,0 +1,58 @@
+{
+  "name": "868 Vibez",
+  "short_name": "868 Vibez",
+  "start_url": "./home.html",
+  "display": "standalone",
+  "background_color": "#060606",
+  "theme_color": "#060606",
+  "description": "868 Apps Hub Ltd\u2122 \u2014 Your Music. Your Vibe. Your World.",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Stream — T&T Radio",
+      "short_name": "Stream",
+      "description": "Jump straight to live Trinidad & Tobago radio",
+      "url": "./index.html?page=stream",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "DJ Console",
+      "short_name": "DJ",
+      "description": "Jump straight to the DJ console",
+      "url": "./index.html?page=dj",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Library",
+      "short_name": "Library",
+      "description": "Jump straight to your music library",
+      "url": "./index.html?page=library",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
